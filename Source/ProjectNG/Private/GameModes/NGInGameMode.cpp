@@ -134,6 +134,7 @@ void ANGInGameMode::StartTurn()
 		{
 			PS->SetHasSelectedNode(false);
 			PS->SetActionFinished(false);
+			PS->SetSkippedMovementThisTurn(false);
 		}
 	}
 
@@ -337,6 +338,20 @@ void ANGInGameMode::BeginCurrentPlayerMovement()
 		ANGPlayerState* PS = Cast<ANGPlayerState>(GS->PlayerArray[ActiveMovementPlayerIndex]);
 		if (PS)
 		{
+			if (PS->ShouldSkipNextMovementTurn())
+			{
+				PS->SetSkipNextMovementTurn(false);
+				PS->SetSkippedMovementThisTurn(true);
+				PS->SetTargetNodeID(PS->GetCurrentNodeID());
+				PS->SetHasSelectedNode(true);
+
+				UE_LOG(LogTemp, Log, TEXT("Player %s skipped movement after fleeing."),
+					*PS->GetPlayerName());
+
+				++ActiveMovementPlayerIndex;
+				continue;
+			}
+
 			GS->SetMovementTurn(PS, 0, TArray<int32>());
 			GS->SetGameFlow(EGameplayPhase::NodeSelection, EGameTime::NodeSelectionTime);
 			GetWorldTimerManager().SetTimer(PhaseTimerHandle, this,
@@ -468,7 +483,14 @@ void ANGInGameMode::StartActionPhase()
 		if (ANGPlayerState* PS = Cast<ANGPlayerState>(RawPS))
 		{
 			PS->SetCurrentNodeID(PS->GetTargetNodeID());
-			PlayingPlayers.Add(PS);
+			if (PS->DidSkipMovementThisTurn())
+			{
+				PS->SetActionFinished(true);
+			}
+			else
+			{
+				PlayingPlayers.Add(PS);
+			}
 		}
 	}
 

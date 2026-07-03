@@ -94,6 +94,7 @@ void UNGCombatManagerComponent::ProcessPlayerFlee(ANGPlayerController* PlayerCon
 {
 	if (ANGPlayerState* PS = PlayerController->GetPlayerState<ANGPlayerState>())
 	{
+		PS->SetSkipNextMovementTurn(true);
 		NotifyEndCombat(PS, ECombatResult::Lose);
 	}
 }

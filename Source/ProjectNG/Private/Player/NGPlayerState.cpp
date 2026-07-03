@@ -44,6 +44,8 @@ void ANGPlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>&
 	DOREPLIFETIME(ANGPlayerState, TargetNodeID);
 	DOREPLIFETIME(ANGPlayerState, bHasSelectedNode);
 	DOREPLIFETIME(ANGPlayerState, bIsActionFinished);
+	DOREPLIFETIME(ANGPlayerState, bSkipNextMovementTurn);
+	DOREPLIFETIME(ANGPlayerState, bSkippedMovementThisTurn);
 }
 
 void ANGPlayerState::BeginPlay()

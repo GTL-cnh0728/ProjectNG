@@ -3,13 +3,17 @@
 
 #include "GameModes/NGInGameMode.h"
 
+#include "AbilitySystem/NGPawnAttributeSet.h"
 #include "Components/NGCombatManagerComponent.h"
+#include "Components/NGPocketComponent.h"
 #include "Core/NGDeveloperSettings.h"
 #include "Core/NGUnitData.h"
 #include "Game/NGGameState.h"
 #include "Game/NGPawnDataManager.h"
 #include "Map/NGMapGeneratorComponent.h"
+#include "Pawn/NGPawnBase.h"
 #include "Pawn/NGUnitPawn.h"
+#include "Player/NGPlayerController.h"
 #include "Player/NGPlayerState.h"
 
 
@@ -90,10 +94,16 @@ void ANGInGameMode::NotifyGameStartToPlayer(ANGGameState* GS)
 void ANGInGameMode::OnCombatFinished(const FCombatResultData& ResultData)
 {
 	UE_LOG(LogTemp, Log, TEXT("Combat Finished"));
-		
-	//ResultData로 점수나 그런거 반영하기
-	
-	// 각 플레이어가 전투 끝났음을 표시
+
+	for (const TWeakObjectPtr<ANGPlayerState>& WeakPlayer : PlayersInNodeCombat)
+	{
+		if (ANGPlayerState* PS = WeakPlayer.Get())
+		{
+			PS->SetActionFinished(true);
+		}
+	}
+	PlayersInNodeCombat.Reset();
+
 	CheckAllPlayersFinishedAction();
 }
 
@@ -450,22 +460,19 @@ void ANGInGameMode::StartActionPhase()
 
 	GS->SetMovementTurn(nullptr, 0, TArray<int32>());
 	GS->SetGameFlow(EGameplayPhase::ActionPhase, EGameTime::ActionPhaseTime);
-
-	UE_LOG(LogTemp, Warning, TEXT("=== Action Phase Started (%f s) ==="), EGameTime::ActionPhaseTime);
+	PlayersInNodeCombat.Reset();
 
 	TArray<ANGPlayerState*> PlayingPlayers;
 	for (APlayerState* RawPS : GS->PlayerArray)
 	{
 		if (ANGPlayerState* PS = Cast<ANGPlayerState>(RawPS))
 		{
+			PS->SetCurrentNodeID(PS->GetTargetNodeID());
 			PlayingPlayers.Add(PS);
 		}
 	}
 
 	TArray<ANGPlayerState*> HandledPlayers;
-
-	// 거리 계산 로직 (거리 <= 1칸)
-	// 현재 맵 제네레이터 정보가 없으므로 ID 차이가 1 이하인 경우로 임시 판별 (이후 ConnectedNodes 로직으로 대체 필요)
 	for (int32 i = 0; i < PlayingPlayers.Num(); ++i)
 	{
 		ANGPlayerState* PlayerA = PlayingPlayers[i];
@@ -476,14 +483,14 @@ void ANGInGameMode::StartActionPhase()
 			ANGPlayerState* PlayerB = PlayingPlayers[j];
 			if (HandledPlayers.Contains(PlayerB)) continue;
 
-			// 임시 인접 판별 로직
-			bool bIsAdjacent = FMath::Abs(PlayerA->GetTargetNodeID() - PlayerB->GetTargetNodeID()) <= 1;
-
-			if (bIsAdjacent)
+			if (PlayerA->GetCurrentNodeID() == PlayerB->GetCurrentNodeID())
 			{
 				UE_LOG(LogTemp, Warning, TEXT("PvP Matched: Player %s vs Player %s"), *PlayerA->GetPlayerName(), *PlayerB->GetPlayerName());
+				NotifyPvPCombatStarted(PlayerA, PlayerB, PlayerA->GetCurrentNodeID());
 				CombatManagerComponent->EnqueueCombatPhase(PlayerA);
 				CombatManagerComponent->EnqueueCombatPhase(PlayerB);
+				PlayersInNodeCombat.Add(PlayerA);
+				PlayersInNodeCombat.Add(PlayerB);
 				HandledPlayers.Add(PlayerA);
 				HandledPlayers.Add(PlayerB);
 				break;
@@ -491,43 +498,173 @@ void ANGInGameMode::StartActionPhase()
 		}
 	}
 
-	// 1:1:1 등 홀수 상황에서 남은 유저는 CPU 전투(복제 유닛 전투) 진행
 	for (ANGPlayerState* PS : PlayingPlayers)
 	{
-		if (!HandledPlayers.Contains(PS))
-		{
-			UE_LOG(LogTemp, Warning, TEXT("CPU Match (Clone): Player %s"), *PS->GetPlayerName());
-			// 원래는 1vs1 대상의 복제 유닛 데이터를 Enqueue 해야 함. 임시로 CPU전 세팅
-			TSoftObjectPtr<UNGEnemyDataAsset> SoftPath = GetDefault<UNGDeveloperSettings>()->EnemyDataAsset;
-			UNGEnemyDataAsset* LoadedAsset = SoftPath.LoadSynchronous();
-			if (LoadedAsset)
+		if (HandledPlayers.Contains(PS)) continue;
+
+		const FMapNodeData* NodeData = GS->MapNodes.FindByPredicate(
+			[PS](const FMapNodeData& Node)
 			{
-				FEnemySquadData SelectedData;
-				if (LoadedAsset->GetRandomSquadForZone(PS->GetCurrentZoneTag(), SelectedData))
-				{
-					CombatManagerComponent->EnqueueCombatPhase(PS, &SelectedData);
-				}
-			}
-			HandledPlayers.Add(PS);
+				return Node.NodeID == PS->GetCurrentNodeID();
+			});
+
+		if (NodeData)
+		{
+			StartNodeAction(PS, *NodeData);
+		}
+		else
+		{
+			PS->SetActionFinished(true);
 		}
 	}
 
-	// 노드 이동 적용
-	for (ANGPlayerState* PS : PlayingPlayers)
+	CombatManagerComponent->MatchingCombatUser(false);
+	if (!PlayersInNodeCombat.IsEmpty())
 	{
-		PS->SetCurrentNodeID(PS->GetTargetNodeID());
+		CombatManagerComponent->StartCountingCombat();
 	}
 
-	CombatManagerComponent->MatchingCombatUser(false);
-	CombatManagerComponent->StartCountingCombat();
-
 	GetWorldTimerManager().SetTimer(PhaseTimerHandle, this, &ThisClass::OnActionPhaseTimerTick, EGameTime::ActionPhaseTime, false);
+	CheckAllPlayersFinishedAction();
+}
+
+void ANGInGameMode::StartNodeAction(ANGPlayerState* PlayerState, const FMapNodeData& NodeData)
+{
+	if (!PlayerState) return;
+
+	switch (NodeData.NodeType)
+	{
+	case ENodeType::Town:
+	case ENodeType::General:
+		PlayerState->SetGameState(EGameState::Maintaining);
+		NotifyNodeActionStarted(PlayerState, NodeData);
+		break;
+
+	case ENodeType::Shop:
+	case ENodeType::Event:
+		NotifyNodeActionStarted(PlayerState, NodeData);
+		break;
+
+	case ENodeType::Rest:
+		ApplyRestNode(PlayerState);
+		NotifyNodeActionStarted(PlayerState, NodeData);
+		break;
+
+	case ENodeType::Combat:
+	case ENodeType::Elite:
+	case ENodeType::Named:
+		NotifyNodeActionStarted(PlayerState, NodeData);
+		StartCPUCombatForNode(PlayerState, NodeData.NodeType);
+		break;
+
+	default:
+		PlayerState->SetActionFinished(true);
+		break;
+	}
+}
+
+void ANGInGameMode::StartCPUCombatForNode(ANGPlayerState* PlayerState, ENodeType NodeType)
+{
+	if (!PlayerState) return;
+
+	TSoftObjectPtr<UNGEnemyDataAsset> SoftPath = GetDefault<UNGDeveloperSettings>()->EnemyDataAsset;
+	UNGEnemyDataAsset* LoadedAsset = SoftPath.LoadSynchronous();
+	FEnemySquadData SelectedData;
+	if (LoadedAsset
+		&& LoadedAsset->GetRandomSquadForZoneAndNodeType(
+			PlayerState->GetCurrentZoneTag(), NodeType, SelectedData))
+	{
+		CombatManagerComponent->EnqueueCombatPhase(PlayerState, &SelectedData);
+		PlayersInNodeCombat.Add(PlayerState);
+		return;
+	}
+
+	UE_LOG(LogTemp, Error, TEXT("No enemy squad configured for player %s, node type %d."),
+		*PlayerState->GetPlayerName(), static_cast<int32>(NodeType));
+}
+
+void ANGInGameMode::ApplyRestNode(ANGPlayerState* PlayerState)
+{
+	constexpr float RecoveryRatio = 0.3f;
+	UNGPocketComponent* Pocket = PlayerState ? PlayerState->GetPlayerPocket() : nullptr;
+	if (!Pocket) return;
+
+	for (ANGPawnBase* Unit : Pocket->GetOwnedUnitPocket())
+	{
+		UAbilitySystemComponent* ASC = IsValid(Unit) ? Unit->GetAbilitySystemComponent() : nullptr;
+		if (!ASC) continue;
+
+		const float Health = ASC->GetNumericAttribute(UNGPawnAttributeSet::GetHealthAttribute());
+		const float MaxHealth = ASC->GetNumericAttribute(UNGPawnAttributeSet::GetMaxHealthAttribute());
+		if (Health <= 0.f || MaxHealth <= 0.f) continue;
+
+		const float Recovery = FMath::Min(MaxHealth - Health, MaxHealth * RecoveryRatio);
+		if (Recovery > 0.f)
+		{
+			ASC->ApplyModToAttribute(
+				UNGPawnAttributeSet::GetHealthAttribute(), EGameplayModOp::Additive, Recovery);
+		}
+	}
+}
+
+void ANGInGameMode::NotifyNodeActionStarted(ANGPlayerState* PlayerState, const FMapNodeData& NodeData)
+{
+	if (ANGPlayerController* PC = PlayerState ? Cast<ANGPlayerController>(PlayerState->GetOwner()) : nullptr)
+	{
+		PC->Client_BeginNodeAction(NodeData.NodeType, NodeData.NodeID);
+	}
+}
+
+void ANGInGameMode::NotifyPvPCombatStarted(ANGPlayerState* PlayerA, ANGPlayerState* PlayerB, int32 NodeID)
+{
+	ANGPlayerController* PlayerAController =
+		PlayerA ? Cast<ANGPlayerController>(PlayerA->GetOwner()) : nullptr;
+	ANGPlayerController* PlayerBController =
+		PlayerB ? Cast<ANGPlayerController>(PlayerB->GetOwner()) : nullptr;
+
+	if (PlayerAController)
+	{
+		PlayerAController->Client_BeginPvPCombat(PlayerB, NodeID);
+	}
+
+	if (PlayerBController)
+	{
+		PlayerBController->Client_BeginPvPCombat(PlayerA, NodeID);
+	}
+}
+
+void ANGInGameMode::CompleteNodeAction(AController* Controller)
+{
+	ANGGameState* GS = GetGameState<ANGGameState>();
+	ANGPlayerState* PS = Controller ? Controller->GetPlayerState<ANGPlayerState>() : nullptr;
+	if (!GS || !PS || GS->CurrentPhase != EGameplayPhase::ActionPhase
+		|| PS->IsActionFinished() || PlayersInNodeCombat.Contains(PS))
+	{
+		return;
+	}
+
+	PS->SetGameState(EGameState::Exploration);
+	PS->SetActionFinished(true);
+	CheckAllPlayersFinishedAction();
 }
 
 void ANGInGameMode::OnActionPhaseTimerTick()
 {
 	ANGGameState* GS = GetGameState<ANGGameState>();
 	if (!GS) return;
+
+	for (APlayerState* RawPS : GS->PlayerArray)
+	{
+		if (ANGPlayerState* PS = Cast<ANGPlayerState>(RawPS))
+		{
+			if (PS->GetGameState() != EGameState::Combat
+				&& PS->GetGameState() != EGameState::GameOver)
+			{
+				PS->SetGameState(EGameState::Exploration);
+				PS->SetActionFinished(true);
+			}
+		}
+	}
 
 	EndTurn();
 }
@@ -690,12 +827,30 @@ float ANGInGameMode::GetUnitPrice(ANGUnitPawn* Unit) const
 	return UnitSellValue;
 }
 
-bool ANGInGameMode::CanBuyUnit(FGameplayTag UnitTag, float OwnedGold) const
+bool ANGInGameMode::CanBuyUnit(FGameplayTag UnitTag, const ANGPlayerState* PlayerState) const
 {
+	if (!PlayerState) return false;
+
+	const ANGGameState* GS = GetGameState<ANGGameState>();
+	bool bUnitShopAllowed = GS && GS->CurrentPhase == EGameplayPhase::Preparation;
+	if (GS && GS->CurrentPhase == EGameplayPhase::ActionPhase)
+	{
+		const FMapNodeData* CurrentNode = GS->MapNodes.FindByPredicate(
+			[PlayerState](const FMapNodeData& Node)
+			{
+				return Node.NodeID == PlayerState->GetCurrentNodeID();
+			});
+		bUnitShopAllowed = CurrentNode
+			&& (CurrentNode->NodeType == ENodeType::Town
+				|| CurrentNode->NodeType == ENodeType::General);
+	}
+
+	if (!bUnitShopAllowed) return false;
+
 	const FUnitData* UnitData = GetUnitData(UnitTag);
 	if (!UnitData) return false;
 	
-	if (UnitData->Price > OwnedGold)	return false;
+	if (UnitData->Price > PlayerState->GetOwnedGold()) return false;
 	
 	return true;
 }

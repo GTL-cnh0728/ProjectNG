@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "NGPlayerState.h"
 #include "Core/NGEnemyDataAsset.h"
+#include "Map/NGMapTypes.h"
 #include "GameFramework/PlayerController.h"
 #include "NGPlayerController.generated.h"
 
@@ -24,6 +25,8 @@ class UNGPocketComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnUnitsUpdatedSignature);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBuyUnitSuccessSignature, bool, bIsSuccess);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnNodeActionStartedSignature, ENodeType, NodeType, int32, NodeID);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPvPCombatStartedSignature, ANGPlayerState*, OpponentPlayer, int32, NodeID);
 
 UCLASS()
 class PROJECTNG_API ANGPlayerController : public APlayerController
@@ -130,6 +133,15 @@ public:
 
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Game|Map")
 	void Server_RollMovementDice();
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Game|Map")
+	void Server_CompleteNodeAction();
+
+	UFUNCTION(Client, Reliable)
+	void Client_BeginNodeAction(ENodeType NodeType, int32 NodeID);
+
+	UFUNCTION(Client, Reliable)
+	void Client_BeginPvPCombat(ANGPlayerState* OpponentPlayer, int32 NodeID);
 	
 	UFUNCTION(Client, Reliable)
 	void Client_OnBuyUnit(bool bIsSuccess);
@@ -139,6 +151,12 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Game|Shop")
 	FOnBuyUnitSuccessSignature OnBuyUnitSuccess;
+
+	UPROPERTY(BlueprintAssignable, Category = "Game|Map")
+	FOnNodeActionStartedSignature OnNodeActionStarted;
+
+	UPROPERTY(BlueprintAssignable, Category = "Game|Combat")
+	FOnPvPCombatStartedSignature OnPVPCombatStarted;
 	
 /*************************************/
 /*				전투					 */

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "Map/NGMapTypes.h"
 #include "NGCombatReward.h"
 #include "Engine/DataAsset.h"
 #include "NGEnemyDataAsset.generated.h"
@@ -40,6 +41,9 @@ struct FEnemySquadData
 	FName SquadName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Squad")
+	ENodeType EncounterNodeType = ENodeType::Combat;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Squad")
 	TArray<FEnemySpawnInfo> SpawnUnits;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Squad")
@@ -71,4 +75,6 @@ public:
 	TMap<FGameplayTag, FZoneSquadPool> ZoneSquadMasterPool;
 
 	bool GetRandomSquadForZone(const FGameplayTag& TargetZone, FEnemySquadData& OutSquadData) const;
+	bool GetRandomSquadForZoneAndNodeType(const FGameplayTag& TargetZone, ENodeType NodeType,
+		FEnemySquadData& OutSquadData) const;
 };

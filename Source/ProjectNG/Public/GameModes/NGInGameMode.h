@@ -47,6 +47,7 @@ public:
 	void OnNodeSelectionTimerTick();
 	void RollMovementDice(AController* Controller);
 	void ProcessNodeSelection(AController* Controller, int32 NodeID);
+	void CompleteNodeAction(AController* Controller);
 	void CheckAllPlayersReadyForNodeSelection();
 	
 	void StartActionPhase();
@@ -79,7 +80,7 @@ public:
 	// 특정 티어의 유닛을 랜덤으로 반환합니다.
 	FGameplayTag GetRandomUnitByTier(EUnitTier Tier);
 	
-	bool CanBuyUnit(FGameplayTag UnitTag, float OwnedGold) const;
+	bool CanBuyUnit(FGameplayTag UnitTag, const ANGPlayerState* PlayerState) const;
 
 	TSubclassOf<ANGUnitPawn> GetUnitClass(FGameplayTag UnitTag) const;
 	const FUnitData* GetUnitData(FGameplayTag UnitTag) const;
@@ -93,6 +94,11 @@ protected:
 	void CompleteCurrentPlayerMovementAutomatically();
 	void RollDiceForPlayer(ANGPlayerState* PlayerState);
 	TArray<int32> FindReachableNodeIDs(int32 StartNodeID, int32 MaxDistance) const;
+	void StartNodeAction(ANGPlayerState* PlayerState, const FMapNodeData& NodeData);
+	void StartCPUCombatForNode(ANGPlayerState* PlayerState, ENodeType NodeType);
+	void ApplyRestNode(ANGPlayerState* PlayerState);
+	void NotifyNodeActionStarted(ANGPlayerState* PlayerState, const FMapNodeData& NodeData);
+	void NotifyPvPCombatStarted(ANGPlayerState* PlayerA, ANGPlayerState* PlayerB, int32 NodeID);
 
 	// Key: GameplayTag, Value: remain count
 	TMap<FGameplayTag, int32> UnitPool;
@@ -108,4 +114,5 @@ protected:
 
 	FTimerHandle PhaseTimerHandle;
 	int32 ActiveMovementPlayerIndex = INDEX_NONE;
+	TSet<TWeakObjectPtr<ANGPlayerState>> PlayersInNodeCombat;
 };

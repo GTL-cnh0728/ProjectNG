@@ -393,7 +393,7 @@ void ANGPlayerController::Server_RequestBuyUnit_Implementation(FGameplayTag Unit
 	if (ANGPlayerState* PS = GetPlayerState<ANGPlayerState>())
 	{
 		ANGInGameMode* GM = GetWorld()->GetAuthGameMode<ANGInGameMode>();
-		if (GM ? GM->CanBuyUnit(UnitTag, PS->GetOwnedGold()) : false)
+		if (GM ? GM->CanBuyUnit(UnitTag, PS) : false)
 		{
 			if (ANGUnitPawn* NewPawn = UNGSpawnHelper::SpawnUnitPawn(this, UnitTag))
 			{
@@ -424,6 +424,24 @@ void ANGPlayerController::Server_RollMovementDice_Implementation()
 	{
 		GM->RollMovementDice(this);
 	}
+}
+
+void ANGPlayerController::Server_CompleteNodeAction_Implementation()
+{
+	if (ANGInGameMode* GM = GetWorld()->GetAuthGameMode<ANGInGameMode>())
+	{
+		GM->CompleteNodeAction(this);
+	}
+}
+
+void ANGPlayerController::Client_BeginNodeAction_Implementation(ENodeType NodeType, int32 NodeID)
+{
+	OnNodeActionStarted.Broadcast(NodeType, NodeID);
+}
+
+void ANGPlayerController::Client_BeginPvPCombat_Implementation(ANGPlayerState* OpponentPlayer, int32 NodeID)
+{
+	OnPVPCombatStarted.Broadcast(OpponentPlayer, NodeID);
 }
 
 void ANGPlayerController::Client_OnBuyUnit_Implementation(bool bIsSuccess)

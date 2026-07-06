@@ -7,6 +7,7 @@
 #include "Engine/DeveloperSettings.h"
 #include "NGDeveloperSettings.generated.h"
 
+class UNGItemDB;
 class UNGEnemyDataAsset;
 class AArena;
 class ANGPawnBase;
@@ -38,4 +39,7 @@ public:
 	
 	UPROPERTY(Config, EditAnywhere, Category = "NG Pool Settings")
 	TSoftObjectPtr<UDataTable> AttackLevelData;
+
+	UPROPERTY(Config, EditAnywhere, Category = "NG Pool Settings")
+	TSoftObjectPtr<UNGItemDB> ItemDataBase;
 };

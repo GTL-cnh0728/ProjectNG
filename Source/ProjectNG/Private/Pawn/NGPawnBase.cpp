@@ -8,6 +8,8 @@
 #include "AbilitySystem/NGPawnAttributeSet.h"
 #include "AbilitySystem/NGPlayerAttributeSet.h"
 #include "Combat/Grid/Arena.h"
+#include "Combat/Item/NGEquipmentItemDataAsset.h"
+#include "Combat/Item/NGEquipmentItemInstance.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/NGFloatingBarWidgetComponent.h"
 #include "Components/NGPathFindingComponent.h"
@@ -784,12 +786,16 @@ void ANGPawnBase::NotifyActorBeginCursorOver()
 {
 	Super::NotifyActorBeginCursorOver();
 
+	UE_LOG(LogTemp, Warning, TEXT("Begin Hover : %s"), *GetName());
+	
 	GrantHoverState();
 }
 
 void ANGPawnBase::NotifyActorEndCursorOver()
 {
 	Super::NotifyActorEndCursorOver();
+	
+	UE_LOG(LogTemp, Warning, TEXT("End Hover : %s"), *GetName());
 	
 	RemoveHoverState();
 }
@@ -959,7 +965,7 @@ void ANGPawnBase::ApplyAnimationSet() const
 	}
 }
 
-void ANGPawnBase::LookAt(ANGPawnBase* Target)
+void ANGPawnBase::LookAt(const ANGPawnBase* Target)
 {
 	if (!Target) return;
 
@@ -995,7 +1001,7 @@ void ANGPawnBase::ExecuteAttack()
 	}
 }
 
-void ANGPawnBase::VisualizePath()
+void ANGPawnBase::VisualizePath() const
 {
 	if (PathFindingComponent)
 	{
@@ -1020,7 +1026,7 @@ void ANGPawnBase::VisualizePath()
 	}
 }
 
-void ANGPawnBase::HighlightRangeIndicator(FGridAddress PivotAddress) const
+void ANGPawnBase::HighlightRangeIndicator(const FGridAddress& PivotAddress) const
 {
 	//대기석은 ㄴㄴ
 	if (PivotAddress.GridType != EGridType::Combat)
@@ -1063,6 +1069,28 @@ void ANGPawnBase::BindJobSkillTrigger()
 		   }
 		}
 	});
+}
+
+bool ANGPawnBase::EquipItem(UNGEquipmentItemInstance* Item) const
+{
+	FGameplayEffectContextHandle Context = AbilitySystemComponent->MakeEffectContext();
+	FGameplayEffectSpecHandle Spec = AbilitySystemComponent->MakeOutgoingSpec(Item->GetEquipDataAsset()->EquipGameplayEffect,1,Context);
+
+	if (!Spec.IsValid())	return false;
+
+	Item->AppliedHandle = AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*Spec.Data);
+	
+	return true;
+}
+
+TArray<TObjectPtr<UNGEquipmentItemInstance>> ANGPawnBase::UnEquipItem()
+{
+	for (UNGEquipmentItemInstance* Item : EquipmentItems)
+	{
+		AbilitySystemComponent->RemoveActiveGameplayEffect(Item->AppliedHandle);
+	}
+	
+	return MoveTemp(EquipmentItems);
 }
 
 void ANGPawnBase::InitAbilityData(const FUnitAbilityData& AbilityData)

@@ -22,4 +22,8 @@ namespace NGGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Data_ADMultiplier, "Data.ADMultiplier");
 	UE_DEFINE_GAMEPLAY_TAG(Data_APMultiplier, "Data.APMultiplier");
 	UE_DEFINE_GAMEPLAY_TAG(Data_SkillMultiplier, "Data.SkillMultiplier");
+	
+	UE_DEFINE_GAMEPLAY_TAG(Item_Equipment_TestSword, "Item.Equipment.TestSword");
+	UE_DEFINE_GAMEPLAY_TAG(Item_Relic_TestRelic, "Item.Relic.TestRelic");
+	UE_DEFINE_GAMEPLAY_TAG(Item_Useable_TestPotion, "Item.Useable.TestPotion");
 }

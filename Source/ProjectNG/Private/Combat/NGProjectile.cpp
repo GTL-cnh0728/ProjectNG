@@ -1,6 +1,6 @@
 // Copyright (c) 2025 TeamNG. All Rights Reserved.
 
-#include "Combat/Weapon/NGProjectile.h"
+#include "Combat/NGProjectile.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"

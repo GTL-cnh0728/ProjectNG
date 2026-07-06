@@ -6,9 +6,6 @@
 #include "AbilitySystem/NGAbilitySystemComponent.h"
 #include "AbilitySystem/NGPawnAttributeSet.h"
 #include "AbilitySystem/NGGameplayAbility.h"
-#include "Combat/Weapon/NGWeaponData.h"
-#include "Core/NGPawnAnimationSet.h"
-#include "Game/NGPawnDataManager.h"
 #include "Player/NGPlayerController.h"
 #include "ProjectNG/ProjectNG.h"
 
@@ -22,25 +19,6 @@ ANGUnitPawn::ANGUnitPawn() : AcceptanceRadius(1.0f)
 		UnitMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 		UnitMesh->SetCollisionResponseToChannel(ECC_SelectableUnit, ECR_Block);
 	}
-}
-
-void ANGUnitPawn::EquipWeapon(UNGWeaponData* NewWeaponData)
-{
-	if (!NewWeaponData || !GetAbilitySystemComponent()) return;
-	
-	if (CurrentWeaponAbilityHandle.IsValid())
-	{
-		GetAbilitySystemComponent()->ClearAbility(CurrentWeaponAbilityHandle);
-	}
-	
-	if (NewWeaponData->WeaponAbilityClass)
-	{
-		CurrentWeaponAbilityHandle = GetAbilitySystemComponent()->GiveAbility(
-			FGameplayAbilitySpec(NewWeaponData->WeaponAbilityClass, 1, static_cast<int32>(EAbilityInputID::Attack))
-		);
-	}
-	
-	UE_LOG(LogTemp, Log, TEXT("Weapon Swapped: Ability Replaced!"));
 }
 
 void ANGUnitPawn::InitializeAttributes()

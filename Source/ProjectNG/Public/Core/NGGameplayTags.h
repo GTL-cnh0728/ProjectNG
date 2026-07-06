@@ -24,4 +24,9 @@ namespace NGGameplayTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Data_ADMultiplier);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Data_APMultiplier);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Data_SkillMultiplier);
+		
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Item_Equipment_TestSword);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Item_Relic_TestRelic);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Item_Useable_TestPotion);
+
 }

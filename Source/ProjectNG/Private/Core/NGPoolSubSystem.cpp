@@ -3,8 +3,7 @@
 
 #include "Core/NGPoolSubSystem.h"
 
-#include "Combat/Weapon/NGProjectile.h"
-#include "Core/NGDeveloperSettings.h"
+#include "Combat/NGProjectile.h"
 
 ANGProjectile* UNGPoolSubSystem::AcquireProjectile(TSubclassOf<ANGProjectile> ProjectileClass,
                                                    const FTransform& SpawnTransform, ANGPawnBase* Target)

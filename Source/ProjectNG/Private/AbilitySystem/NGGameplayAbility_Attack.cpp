@@ -42,7 +42,7 @@ void UNGGameplayAbility_Attack::OnAttackReceived(FGameplayEventData Payload)
 			break;
 		}
 	}
-	SpecHandle.Data->DynamicAssetTags.AddTag(AbilityTag);
+	SpecHandle.Data->AddDynamicAssetTag(AbilityTag);
 	/////////////////////////////////////////////
 	
 }

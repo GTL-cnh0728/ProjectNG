@@ -5,6 +5,8 @@
 #include "AbilitySystem/NGPlayerAttributeSet.h"
 #include "Combat/Grid/Arena.h"
 #include "Combat/Grid/ArenaManager.h"
+#include "Components/NGBuffManagerComponent.h"
+#include "Components/NGInventoryComponent.h"
 #include "Components/NGPocketComponent.h"
 #include "Core/NGDeveloperSettings.h"
 #include "Game/NGGameState.h"
@@ -27,6 +29,8 @@ ANGPlayerState::ANGPlayerState() : CurrentGameState(EGameState::Maintaining), Cu
 	AttributeSet = CreateDefaultSubobject<UNGPlayerAttributeSet>(TEXT("PlayerAttributeSet"));
 	
 	PlayerPocket = CreateDefaultSubobject<UNGPocketComponent>("PocketComponent");
+	PlayerInventory = CreateDefaultSubobject<UNGInventoryComponent>("InventoryComponent");
+	PlayerBuffManager = CreateDefaultSubobject<UNGBuffManagerComponent>("BuffManager");
 }
 
 void ANGPlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -37,6 +41,8 @@ void ANGPlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>&
 	DOREPLIFETIME(ANGPlayerState, WaitGridMap);
 	DOREPLIFETIME(ANGPlayerState, EnemyWaitGridMap);
 	DOREPLIFETIME(ANGPlayerState, PlayerPocket);
+	DOREPLIFETIME(ANGPlayerState, PlayerInventory);
+	DOREPLIFETIME(ANGPlayerState, PlayerBuffManager);
 	DOREPLIFETIME(ANGPlayerState, HomeArena);
 	DOREPLIFETIME(ANGPlayerState, CurrentGameState);
 

@@ -19,6 +19,7 @@ enum class EGameplayPhase : uint8
 	Preparation,
 	NodeSelection,
 	ActionPhase,
+	Result,
 	TurnEnd
 };
 

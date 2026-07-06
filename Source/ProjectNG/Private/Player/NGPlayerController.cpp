@@ -444,6 +444,11 @@ void ANGPlayerController::Client_BeginPvPCombat_Implementation(ANGPlayerState* O
 	OnPVPCombatStarted.Broadcast(OpponentPlayer, NodeID);
 }
 
+void ANGPlayerController::Client_ShowCombatResult_Implementation(const FCombatResultData& CombatResult)
+{
+	OnCombatResult.Broadcast(CombatResult);
+}
+
 void ANGPlayerController::Client_OnBuyUnit_Implementation(bool bIsSuccess)
 {
 	OnBuyUnitSuccess.Broadcast(bIsSuccess);

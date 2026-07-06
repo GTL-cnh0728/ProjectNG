@@ -95,6 +95,7 @@ public:
 	void SetSkippedMovementThisTurn(bool bSkipped) { bSkippedMovementThisTurn = bSkipped; }
 
 	void OnCombatEnd(FCombatResultData CombatResult);
+	bool ConsumePendingCombatResult(FCombatResultData& OutCombatResult);
 	
 	float GetOwnedGold() const;
 	
@@ -128,6 +129,9 @@ protected:
 
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Game|Turn")
 	bool bSkippedMovementThisTurn = false;
+
+	FCombatResultData PendingCombatResult;
+	bool bHasPendingCombatResult = false;
 
 /*************************************/
 /*		전투 및 Pocket 관련			 */

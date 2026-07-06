@@ -673,7 +673,7 @@ void ANGInGameMode::CompleteNodeAction(AController* Controller)
 void ANGInGameMode::OnActionPhaseTimerTick()
 {
 	ANGGameState* GS = GetGameState<ANGGameState>();
-	if (!GS) return;
+	if (!GS || GS->CurrentPhase != EGameplayPhase::ActionPhase) return;
 
 	for (APlayerState* RawPS : GS->PlayerArray)
 	{
@@ -688,7 +688,7 @@ void ANGInGameMode::OnActionPhaseTimerTick()
 		}
 	}
 
-	EndTurn();
+	CheckAllPlayersFinishedAction();
 }
 
 void ANGInGameMode::CheckAllPlayersFinishedAction()
@@ -708,6 +708,41 @@ void ANGInGameMode::CheckAllPlayersFinishedAction()
 	}
 	
 	GetWorldTimerManager().ClearTimer(PhaseTimerHandle);
+	StartResultPhase();
+}
+
+void ANGInGameMode::StartResultPhase()
+{
+	ANGGameState* GS = GetGameState<ANGGameState>();
+	if (!GS || GS->CurrentPhase != EGameplayPhase::ActionPhase) return;
+
+	GetWorldTimerManager().ClearTimer(PhaseTimerHandle);
+	GS->SetGameFlow(EGameplayPhase::Result, EGameTime::ResultTime);
+
+	for (APlayerState* RawPS : GS->PlayerArray)
+	{
+		ANGPlayerState* PS = Cast<ANGPlayerState>(RawPS);
+		if (!PS) continue;
+
+		FCombatResultData CombatResult;
+		if (PS->ConsumePendingCombatResult(CombatResult))
+		{
+			if (ANGPlayerController* PC = Cast<ANGPlayerController>(PS->GetOwner()))
+			{
+				PC->Client_ShowCombatResult(CombatResult);
+			}
+		}
+	}
+
+	GetWorldTimerManager().SetTimer(PhaseTimerHandle, this,
+		&ThisClass::OnResultPhaseTimerExpired, EGameTime::ResultTime, false);
+}
+
+void ANGInGameMode::OnResultPhaseTimerExpired()
+{
+	ANGGameState* GS = GetGameState<ANGGameState>();
+	if (!GS || GS->CurrentPhase != EGameplayPhase::Result) return;
+
 	EndTurn();
 }
 

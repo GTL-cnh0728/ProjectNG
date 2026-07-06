@@ -184,6 +184,8 @@ void ANGPlayerState::EarnGold(float EarnedGold) const
 void ANGPlayerState::OnCombatEnd(FCombatResultData CombatResult)
 {
 	EarnGold(CombatResult.EarnedReward.Gold);
+	PendingCombatResult = CombatResult;
+	bHasPendingCombatResult = true;
 	
 	switch (CombatResult.WinResult)
 	{
@@ -203,6 +205,15 @@ void ANGPlayerState::OnCombatEnd(FCombatResultData CombatResult)
 			break;
 		}
 	}
+}
+
+bool ANGPlayerState::ConsumePendingCombatResult(FCombatResultData& OutCombatResult)
+{
+	if (!bHasPendingCombatResult) return false;
+
+	OutCombatResult = PendingCombatResult;
+	bHasPendingCombatResult = false;
+	return true;
 }
 
 float ANGPlayerState::GetOwnedGold() const

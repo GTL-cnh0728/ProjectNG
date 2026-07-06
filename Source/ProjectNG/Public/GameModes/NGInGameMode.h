@@ -21,6 +21,7 @@ namespace EGameTime
 	constexpr float NodeSelectionTime = 30.0f;
 	constexpr float PreparationTime = 30.0f;
 	constexpr float ActionPhaseTime = 60.0f;
+	constexpr float ResultTime = 3.0f;
 }
 
 UCLASS()
@@ -53,6 +54,8 @@ public:
 	void StartActionPhase();
 	void OnActionPhaseTimerTick();
 	void CheckAllPlayersFinishedAction();
+	void StartResultPhase();
+	void OnResultPhaseTimerExpired();
 	
 	void EndTurn();
 	

@@ -27,6 +27,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnUnitsUpdatedSignature);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBuyUnitSuccessSignature, bool, bIsSuccess);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnNodeActionStartedSignature, ENodeType, NodeType, int32, NodeID);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPvPCombatStartedSignature, ANGPlayerState*, OpponentPlayer, int32, NodeID);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCombatResultSignature, FCombatResultData, CombatResult);
 
 UCLASS()
 class PROJECTNG_API ANGPlayerController : public APlayerController
@@ -142,6 +143,9 @@ public:
 
 	UFUNCTION(Client, Reliable)
 	void Client_BeginPvPCombat(ANGPlayerState* OpponentPlayer, int32 NodeID);
+
+	UFUNCTION(Client, Reliable)
+	void Client_ShowCombatResult(const FCombatResultData& CombatResult);
 	
 	UFUNCTION(Client, Reliable)
 	void Client_OnBuyUnit(bool bIsSuccess);
@@ -157,6 +161,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Game|Combat")
 	FOnPvPCombatStartedSignature OnPVPCombatStarted;
+
+	UPROPERTY(BlueprintAssignable, Category = "Game|Combat")
+	FOnCombatResultSignature OnCombatResult;
 	
 /*************************************/
 /*				전투					 */

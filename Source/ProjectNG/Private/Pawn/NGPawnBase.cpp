@@ -18,6 +18,7 @@
 #include "Game/NGPawnDataManager.h"
 #include "Core/NGDeveloperSettings.h"
 #include "Core/NGPawnAnimationSet.h"
+#include "Engine/ActorChannel.h"
 #include "GameModes/NGInGameMode.h"
 #include "Net/UnrealNetwork.h"
 #include "Pawn/NGUnitPawn.h"
@@ -25,7 +26,7 @@
 #include "ProjectNG/ProjectNG.h"
 #include "UI/NGFloatingWidgetInterface.h"
 
-ANGPawnBase::ANGPawnBase() : SpeedScale(100.f), RotationInterpSpeed(10.f)
+ANGPawnBase::ANGPawnBase() : EquipMaxCount(3), SpeedScale(100.f), RotationInterpSpeed(10.f)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	
@@ -136,6 +137,22 @@ void ANGPawnBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& Ou
 	DOREPLIFETIME(ANGPawnBase, PawnState);
 	DOREPLIFETIME(ANGPawnBase, IdentificationTag);
 	DOREPLIFETIME(ANGPawnBase, AnimationSet);
+	DOREPLIFETIME(ANGPawnBase, EquipmentItems);
+}
+
+bool ANGPawnBase::ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+
+	for (UNGEquipmentItemInstance* Item : EquipmentItems)
+	{
+		if (Item)
+		{
+			WroteSomething |= Channel->ReplicateSubobject(Item, *Bunch, *RepFlags);
+		}
+	}
+
+	return WroteSomething;
 }
 
 void ANGPawnBase::HandleGameplayCue(UObject* Self, FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType,
@@ -785,8 +802,6 @@ void ANGPawnBase::Client_RejectMove_Implementation()
 void ANGPawnBase::NotifyActorBeginCursorOver()
 {
 	Super::NotifyActorBeginCursorOver();
-
-	UE_LOG(LogTemp, Warning, TEXT("Begin Hover : %s"), *GetName());
 	
 	GrantHoverState();
 }
@@ -794,8 +809,6 @@ void ANGPawnBase::NotifyActorBeginCursorOver()
 void ANGPawnBase::NotifyActorEndCursorOver()
 {
 	Super::NotifyActorEndCursorOver();
-	
-	UE_LOG(LogTemp, Warning, TEXT("End Hover : %s"), *GetName());
 	
 	RemoveHoverState();
 }
@@ -1071,12 +1084,16 @@ void ANGPawnBase::BindJobSkillTrigger()
 	});
 }
 
-bool ANGPawnBase::EquipItem(UNGEquipmentItemInstance* Item) const
+bool ANGPawnBase::EquipItem(UNGEquipmentItemInstance* Item)
 {
+	if (EquipmentItems.Num() >= EquipMaxCount)	return false;
+	
 	FGameplayEffectContextHandle Context = AbilitySystemComponent->MakeEffectContext();
 	FGameplayEffectSpecHandle Spec = AbilitySystemComponent->MakeOutgoingSpec(Item->GetEquipDataAsset()->EquipGameplayEffect,1,Context);
 
 	if (!Spec.IsValid())	return false;
+	
+	EquipmentItems.Add(Item);
 
 	Item->AppliedHandle = AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*Spec.Data);
 	

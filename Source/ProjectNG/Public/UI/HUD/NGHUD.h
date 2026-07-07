@@ -30,6 +30,9 @@ public:
     
     void ShowInventory(bool bVisible) const;
     
+    UFUNCTION()
+    void RefreshInventory();
+
     void InitializeHUD(APlayerController* PC, APlayerState* PS);
 
 protected:

@@ -2,6 +2,7 @@
 
 #include "UI/HUD/NGHUD.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/NGInventoryComponent.h"
 #include "UI/NGInventoryWidget.h"
 #include "UI/NGShopControlWidget.h"
 #include "UI/NGUnitInfoWidget.h"
@@ -36,11 +37,18 @@ UUnitDetailsWidgetController* ANGHUD::CreateUnitDetailsWidgetController(const FW
 
 void ANGHUD::ShowInventory(bool bVisible) const
 {
-    if (!MainWidget)   return;
+    if (!MainWidget || !MainWidget->InventoryWidget)   return;
     
     ESlateVisibility Visibility = bVisible ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed;
 
     MainWidget->InventoryWidget->SetVisibility(Visibility);
+}
+
+void ANGHUD::RefreshInventory()
+{
+    if (!MainWidget || !MainWidget->InventoryWidget)   return;
+    
+    MainWidget->InventoryWidget->RefreshInventory();
 }
 
 void ANGHUD::InitializeHUD(APlayerController* PC, APlayerState* PS)
@@ -72,5 +80,12 @@ void ANGHUD::InitializeHUD(APlayerController* PC, APlayerState* PS)
     if (MainWidget)
     {
         MainWidget->AddToViewport();
+    }
+    
+    ANGPlayerState* NGPS = CastChecked<ANGPlayerState>(PS);
+    
+    if (UNGInventoryComponent* Inven = NGPS ? NGPS->GetPlayerInventory() : nullptr)
+    {
+        Inven->OnInventoryChanged.AddDynamic(this, &ANGHUD::RefreshInventory);
     }
 }

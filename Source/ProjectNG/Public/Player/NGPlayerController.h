@@ -39,7 +39,7 @@ protected:
 	virtual void SetupInputComponent() override;
 
 	virtual void Tick(float DeltaTime) override;
-
+	
 /*************************************/
 /*				피킹 관련			 */
 /*************************************/
@@ -64,7 +64,8 @@ public:
 	
 	void SetDragItemWithUpdateUI(UNGItemInstance* InItem);
 	void SetDragItem(UNGItemInstance* InItem);
-	
+	void OnItemDragReleased();
+
 protected:
 
 	void HandleClickPressed(const FInputActionValue& Value);

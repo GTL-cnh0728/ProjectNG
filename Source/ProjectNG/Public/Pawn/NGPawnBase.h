@@ -55,7 +55,7 @@ public:
 	//~End IPoolable
 	
 	virtual void InitializeUnitData(const FUnitData* Data);
-
+	
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_Activate();
 
@@ -84,22 +84,28 @@ public:
 	
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
+	virtual bool ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
+	
 	void HighlightRangeIndicator(const FGridAddress& PivotAddress) const;
 	
 	void BindJobSkillTrigger();
 
 	int32 GetOwnerIndex() const { return OwnerIndex; }
 
-	bool EquipItem(UNGEquipmentItemInstance* Item) const;
+	bool EquipItem(UNGEquipmentItemInstance* Item);
 	TArray<TObjectPtr<UNGEquipmentItemInstance>> UnEquipItem();
+	
+	UPROPERTY(EditAnywhere)
+	int32 EquipMaxCount;
 	
 protected:
 	/** 파생 클래스에서 GAS 초기화를 위한 로직을 작성 */
 	virtual void InitAbilityActorInfo()	PURE_VIRTUAL(ANGPawnBase::InitAbilityActorInfo);
 
 	void LookAtInterp(ANGPawnBase* Target, float DeltaTime);
+
 protected:
-	UPROPERTY(Replicated)
+	UPROPERTY(Replicated, VisibleAnywhere)
 	TArray<TObjectPtr<UNGEquipmentItemInstance>> EquipmentItems;
 	
 	//캐싱 용도

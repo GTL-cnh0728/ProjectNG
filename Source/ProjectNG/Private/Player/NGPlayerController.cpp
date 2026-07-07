@@ -96,9 +96,20 @@ void ANGPlayerController::Tick(float DeltaTime)
 	
 	GetMousePosition(CurrentMouseLocation.X, CurrentMouseLocation.Y);
 	
-	if (IsLocalController() && DraggingUnit.IsValid())
+	if (IsLocalController())
 	{
-		PerformDragUpdate(DeltaTime);
+		if (DraggingUnit.IsValid())
+		{
+			PerformDragUpdate(DeltaTime);
+		}
+	
+		if (CurrentDraggingItem)
+		{
+			if (WasInputKeyJustReleased(EKeys::LeftMouseButton))
+			{
+				OnItemDragReleased();
+			}
+		}
 	}
 	
 	if (bShowDebugGrid)
@@ -262,7 +273,7 @@ void ANGPlayerController::SetDragItemWithUpdateUI(UNGItemInstance* InItem)
 	
 	SetDragItem(InItem);
 	
-	bool bIsDraggingItem = CurrentDraggingItem ? true : false;
+	bool bIsDraggingItem = InItem ? true : false;
 
 	if (const ANGHUD* NGHUD = GetHUD<ANGHUD>())
 	{
@@ -279,6 +290,28 @@ void ANGPlayerController::SetDragItemWithUpdateUI(UNGItemInstance* InItem)
 void ANGPlayerController::SetDragItem(UNGItemInstance* InItem)
 {
 	CurrentDraggingItem = InItem;
+}
+
+void ANGPlayerController::OnItemDragReleased()
+{
+	UE_LOG(LogTemp, Log, TEXT("ANGPlayerController::OnItemDragReleased"));
+	
+	//아이템 드래그 관리
+	if (CurrentDraggingItem)
+	{
+		if (HoveringUnit.IsValid())
+		{
+			UE_LOG(LogTemp, Log, TEXT("EquipItem!"));
+			ANGPlayerState* PS = GetPlayerState<ANGPlayerState>();
+			if (UNGInventoryComponent* Inven = PS ? PS->GetPlayerInventory() : nullptr)
+			{
+				Inven->Server_EquipItem(HoveringUnit.Get(), CastChecked<UNGEquipmentItemInstance>(CurrentDraggingItem));
+			}
+		}
+		
+		//아이템 드래그중이면 끝났을떄 다시 인벤을 켜줘야하기 때문에 밖에서 호출하면 인벤이 꺼져있는상황에서도 mouse release상황에 인벤이 켜짐
+		SetDragItemWithUpdateUI(nullptr);
+	}
 }
 
 void ANGPlayerController::HandleClickPressed(const FInputActionValue& Value)
@@ -308,18 +341,6 @@ void ANGPlayerController::HandleClickReleased(const FInputActionValue& Value)
 		ResetHighlight();
 		ResetDragUnit();
 		ResetHoveringUnit();
-	}
-	
-	//아이템 드래그 관리
-	if (CurrentDraggingItem)
-	{
-		if (HoveringUnit.IsValid())
-		{
-			HoveringUnit->EquipItem(CastChecked<UNGEquipmentItemInstance>(CurrentDraggingItem));
-		}
-		
-		//아이템 드래그중이면 끝났을떄 다시 인벤을 켜줘야하기 때문에 밖에서 호출하면 인벤이 꺼져있는상황에서도 mouse release상황에 인벤이 켜짐
-		SetDragItemWithUpdateUI(nullptr);
 	}
 }
 

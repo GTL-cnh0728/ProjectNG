@@ -3,14 +3,11 @@
 
 #include "UI/NGItemSlotWidget.h"
 
-#include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Combat/Item/NGItemDataAsset.h"
 #include "Combat/Item/NGItemInstance.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
-#include "Core/NGItemDragDropOperation.h"
 #include "Player/NGPlayerController.h"
-#include "UI/HUD/NGHUD.h"
 
 void UNGItemSlotWidget::Init(UNGItemInstance* InItem)
 {
@@ -23,24 +20,31 @@ void UNGItemSlotWidget::Init(UNGItemInstance* InItem)
 
 FReply UNGItemSlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	return UWidgetBlueprintLibrary::DetectDragIfPressed(InMouseEvent, this, EKeys::LeftMouseButton).NativeReply;
+	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
+	{
+		bReadyToDrag = true;
+		
+		return FReply::Handled();
+	}
+	
+	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
-void UNGItemSlotWidget::NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent,
-	UDragDropOperation*& OutOperation)
+FReply UNGItemSlotWidget::NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
-	
-	UNGItemDragDropOperation* Drag = NewObject<UNGItemDragDropOperation>();
-	
-	Drag->DragItem = Item;
-	Drag->DefaultDragVisual = this;
-	Drag->DefaultDragVisual->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
-	
-	OutOperation = Drag;
+	if (!bReadyToDrag)
+	{
+		return Super::NativeOnMouseMove(InGeometry, InMouseEvent);
+	}
 	
 	if (ANGPlayerController* PC = GetOwningPlayer<ANGPlayerController>())
 	{
 		PC->SetDragItemWithUpdateUI(Item);
-	}	
+		
+		bReadyToDrag = false;
+
+		return FReply::Handled();
+	}
+	
+	return Super::NativeOnMouseMove(InGeometry, InMouseEvent);;
 }

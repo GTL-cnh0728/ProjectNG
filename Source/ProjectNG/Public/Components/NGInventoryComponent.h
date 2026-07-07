@@ -7,6 +7,7 @@
 #include "Components/ActorComponent.h"
 #include "NGInventoryComponent.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryChangedSignature);
 
 class UNGBuffManagerComponent;
 class UNGRelicItemInstance;
@@ -41,6 +42,8 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_UseItem(UNGItemInstance* Item);
 	
+	UPROPERTY(BlueprintAssignable, Category = "Inventory | Event")
+	FOnInventoryChangedSignature OnInventoryChanged;
 protected:
 	
 	UNGBuffManagerComponent* GetBuffManager();
@@ -53,9 +56,13 @@ protected:
 	void Internal_AddItem(UNGItemInstance* NewItem);
 	void Internal_RemoveItem(UNGItemInstance* Item);
 	
+	UFUNCTION()
+	void OnRep_Items();
+	
 	UPROPERTY()
 	UNGBuffManagerComponent* BuffManagerCache;
 	
-	UPROPERTY(Replicated, VisibleAnywhere)
+	//ReplicateUsing써서 Inventory Widget Refresh
+	UPROPERTY(ReplicatedUsing=OnRep_Items, VisibleAnywhere)
 	TArray<TObjectPtr<UNGItemInstance>> Items;
 };

@@ -10,6 +10,8 @@
 #include "Engine/ActorChannel.h"
 #include "Net/UnrealNetwork.h"
 #include "Pawn/NGPawnBase.h"
+#include "Player/NGPlayerController.h"
+#include "UI/HUD/NGHUD.h"
 
 
 // Sets default values for this component's properties
@@ -86,6 +88,11 @@ void UNGInventoryComponent::Internal_RemoveItem(UNGItemInstance* Item)
 	RemoveReplicatedSubObject(Item);
 }
 
+void UNGInventoryComponent::OnRep_Items()
+{
+	OnInventoryChanged.Broadcast();
+}
+
 bool UNGInventoryComponent::UseItem(UNGItemInstance* Item)
 {	
 	UNGBuffManagerComponent* BuffManager = GetBuffManager();
@@ -102,10 +109,13 @@ bool UNGInventoryComponent::EquipItem(ANGPawnBase* Unit, UNGEquipmentItemInstanc
 {
 	if (!Items.Contains(Item) || !Unit)	return false;
 
-	Items.Remove(Item);
-	Unit->EquipItem(Item);
+	if (Unit->EquipItem(Item))
+	{
+		Items.Remove(Item);
+		return true;
+	}
 	
-	return true;
+	return false;
 }
 
 bool UNGInventoryComponent::UnEquipItem(ANGPawnBase* Unit)

@@ -16,21 +16,21 @@
 bool UNGShopControlWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent,
                                         UDragDropOperation* InOperation)
 {
-	UNGItemDragDropOperation* Drag = Cast<UNGItemDragDropOperation>(InOperation);
-	if (!Drag)	return false;
+	// UNGItemDragDropOperation* Drag = Cast<UNGItemDragDropOperation>(InOperation);
+	// if (!Drag)	return false;
 	
 	ANGPlayerController* PC = GetOwningPlayer<ANGPlayerController>();
 	ANGPawnBase* Unit = PC ? PC->GetHoveringUnit() : nullptr;
 	if (!Unit)	return false;
 	
-	UNGEquipmentItemInstance* EquipItem = Cast<UNGEquipmentItemInstance>(Drag->DragItem);
-	if (!EquipItem)	return false;
+	// UNGEquipmentItemInstance* EquipItem = Cast<UNGEquipmentItemInstance>(Drag->DragItem);
+	// if (!EquipItem)	return false;
 	
 	ANGPlayerState* PS = PC ? PC->GetPlayerState<ANGPlayerState>() : nullptr;
 	UNGInventoryComponent* Inventory = PS ? PS->GetPlayerInventory() : nullptr;
 	if (!Inventory)	return false;
 	
-	Inventory->Server_EquipItem(Unit, EquipItem);
+	// Inventory->Server_EquipItem(Unit, EquipItem);
 	
 	return true;
 }

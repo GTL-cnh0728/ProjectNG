@@ -22,8 +22,8 @@ public:
 
 protected:
 	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
-
+	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	
 	UPROPERTY()
 	TObjectPtr<UNGItemInstance> Item;
 	
@@ -35,5 +35,7 @@ protected:
 	
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UTextBlock> ItemCount;
+	
+	bool bReadyToDrag;
 	
 };

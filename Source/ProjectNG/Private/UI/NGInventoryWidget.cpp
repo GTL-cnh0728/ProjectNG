@@ -37,6 +37,11 @@ UNGInventoryComponent* UNGInventoryWidget::GetInventory()
 
 void UNGInventoryWidget::RefreshInventory()
 {
+	if (GetVisibility() == ESlateVisibility::Collapsed || GetVisibility() == ESlateVisibility::Hidden)
+	{
+		return;
+	}
+	
 	ItemList->ClearChildren();
 	
 	UNGInventoryComponent* Inventory = GetInventory();

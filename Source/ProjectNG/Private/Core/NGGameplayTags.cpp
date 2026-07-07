@@ -8,9 +8,6 @@ namespace NGGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Node_Town_Elf, "Node.Town.Elf");
 	UE_DEFINE_GAMEPLAY_TAG(Node_Town_Dwarf, "Node.Town.Dwarf");
 	UE_DEFINE_GAMEPLAY_TAG(Node_Town_Human, "Node.Town.Human");
-	UE_DEFINE_GAMEPLAY_TAG(Node_Event_Default, "Node.Event.Default");
-	UE_DEFINE_GAMEPLAY_TAG(Node_Event_Combat, "Node.Event.Combat");
-	UE_DEFINE_GAMEPLAY_TAG(Node_Event_Hidden, "Node.Event.Hidden");
 	
 	UE_DEFINE_GAMEPLAY_TAG(Node_General, "Node.General");
 	UE_DEFINE_GAMEPLAY_TAG(Node_Shop, "Node.Shop");

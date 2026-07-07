@@ -7,6 +7,15 @@
 UNGMapGeneratorComponent::UNGMapGeneratorComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+
+	NodeTypeSpawnRules = {
+		{ ENodeType::General, GeneralWeight, 2, 6, 100 },
+		{ ENodeType::Combat, CombatWeight, 2, 6, 90 },
+		{ ENodeType::Event, EventWeight, 1, 4, 70 },
+		{ ENodeType::Shop, ShopWeight, 1, 3, 60 },
+		{ ENodeType::Rest, RestWeight, 1, 3, 50 },
+		{ ENodeType::Elite, EliteWeight, 1, 2, 40 }
+	};
 }
 
 void UNGMapGeneratorComponent::GenerateMap(int32 Seed)
@@ -310,31 +319,242 @@ bool UNGMapGeneratorComponent::ValidateConnectivity()
 	return Visited.Num() == GeneratedNodes.Num();
 }
 
-ENodeType UNGMapGeneratorComponent::PickRandomNodeType()
+TArray<FNGNodeTypeSpawnRule> UNGMapGeneratorComponent::GetEffectiveNodeTypeSpawnRules() const
 {
-	float GWeight = GeneralWeight;
-	float SWeight = ShopWeight;
-	float CWeight = CombatWeight;
-	float EvWeight = EventWeight;
-	float RWeight = RestWeight;
-	float ElWeight = EliteWeight;
+	TArray<FNGNodeTypeSpawnRule> Rules = NodeTypeSpawnRules;
 
-	float TotalWeight = GWeight + SWeight + CWeight + EvWeight + RWeight + ElWeight;
-	if (TotalWeight <= 0.0f) return ENodeType::General;
+	if (Rules.IsEmpty())
+	{
+		Rules = {
+			{ ENodeType::General, GeneralWeight, 0, TNumericLimits<int32>::Max(), 100 },
+			{ ENodeType::Combat, CombatWeight, 0, TNumericLimits<int32>::Max(), 90 },
+			{ ENodeType::Event, EventWeight, 0, TNumericLimits<int32>::Max(), 70 },
+			{ ENodeType::Shop, ShopWeight, 0, TNumericLimits<int32>::Max(), 60 },
+			{ ENodeType::Rest, RestWeight, 0, TNumericLimits<int32>::Max(), 50 },
+			{ ENodeType::Elite, EliteWeight, 0, TNumericLimits<int32>::Max(), 40 }
+		};
+	}
 
-	float RandVal = RandomStream.FRandRange(0.0f, TotalWeight);
+	Rules.RemoveAll([](const FNGNodeTypeSpawnRule& Rule)
+	{
+		return Rule.NodeType == ENodeType::None
+			|| Rule.NodeType == ENodeType::Town
+			|| Rule.NodeType == ENodeType::Named;
+	});
 
-	if (RandVal < GWeight) return ENodeType::General;
-	RandVal -= GWeight;
-	if (RandVal < SWeight) return ENodeType::Shop;
-	RandVal -= SWeight;
-	if (RandVal < CWeight) return ENodeType::Combat;
-	RandVal -= CWeight;
-	if (RandVal < EvWeight) return ENodeType::Event;
-	RandVal -= EvWeight;
-	if (RandVal < RWeight) return ENodeType::Rest;
+	TSet<ENodeType> SeenTypes;
+	Rules.RemoveAll([&SeenTypes](const FNGNodeTypeSpawnRule& Rule)
+	{
+		if (SeenTypes.Contains(Rule.NodeType))
+		{
+			return true;
+		}
 
-	return ENodeType::Elite;
+		SeenTypes.Add(Rule.NodeType);
+		return false;
+	});
+
+	for (FNGNodeTypeSpawnRule& Rule : Rules)
+	{
+		Rule.Weight = FMath::Max(0.0f, Rule.Weight);
+		Rule.MinCount = FMath::Max(0, Rule.MinCount);
+		Rule.MaxCount = FMath::Max(0, Rule.MaxCount);
+
+		if (Rule.MaxCount < Rule.MinCount)
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("Node spawn rule for type %d has MaxCount lower than MinCount. MaxCount was raised to MinCount."),
+				static_cast<int32>(Rule.NodeType));
+			Rule.MaxCount = Rule.MinCount;
+		}
+	}
+
+	Rules.StableSort([](const FNGNodeTypeSpawnRule& A, const FNGNodeTypeSpawnRule& B)
+	{
+		if (A.FillPriority != B.FillPriority)
+		{
+			return A.FillPriority > B.FillPriority;
+		}
+
+		if (!FMath::IsNearlyEqual(A.Weight, B.Weight))
+		{
+			return A.Weight > B.Weight;
+		}
+
+		return static_cast<uint8>(A.NodeType) < static_cast<uint8>(B.NodeType);
+	});
+
+	return Rules;
+}
+
+TMap<ENodeType, int32> UNGMapGeneratorComponent::BuildNodeTypeCounts(int32 AssignableNodeCount) const
+{
+	TMap<ENodeType, int32> Counts;
+	if (AssignableNodeCount <= 0)
+	{
+		return Counts;
+	}
+
+	const TArray<FNGNodeTypeSpawnRule> Rules = GetEffectiveNodeTypeSpawnRules();
+	if (Rules.IsEmpty())
+	{
+		Counts.Add(ENodeType::General, AssignableNodeCount);
+		return Counts;
+	}
+
+	float TotalWeight = 0.0f;
+	for (const FNGNodeTypeSpawnRule& Rule : Rules)
+	{
+		TotalWeight += Rule.Weight;
+		Counts.FindOrAdd(Rule.NodeType) = 0;
+	}
+
+	if (TotalWeight <= KINDA_SMALL_NUMBER)
+	{
+		Counts.FindOrAdd(Rules[0].NodeType) = AssignableNodeCount;
+		return Counts;
+	}
+
+	struct FNodeCountRemainder
+	{
+		ENodeType NodeType = ENodeType::None;
+		float Remainder = 0.0f;
+		int32 RuleIndex = 0;
+	};
+
+	TArray<FNodeCountRemainder> Remainders;
+	int32 CurrentTotal = 0;
+
+	for (int32 RuleIndex = 0; RuleIndex < Rules.Num(); ++RuleIndex)
+	{
+		const FNGNodeTypeSpawnRule& Rule = Rules[RuleIndex];
+		const float ExactCount = (Rule.Weight / TotalWeight) * AssignableNodeCount;
+		int32 Count = FMath::FloorToInt(ExactCount);
+		Count = FMath::Clamp(Count, Rule.MinCount, Rule.MaxCount);
+
+		Counts.FindOrAdd(Rule.NodeType) = Count;
+		CurrentTotal += Count;
+
+		Remainders.Add({ Rule.NodeType, ExactCount - FMath::FloorToFloat(ExactCount), RuleIndex });
+	}
+
+	Remainders.StableSort([](const FNodeCountRemainder& A, const FNodeCountRemainder& B)
+	{
+		if (!FMath::IsNearlyEqual(A.Remainder, B.Remainder))
+		{
+			return A.Remainder > B.Remainder;
+		}
+
+		return A.RuleIndex < B.RuleIndex;
+	});
+
+	while (CurrentTotal < AssignableNodeCount)
+	{
+		bool bAdded = false;
+
+		for (const FNodeCountRemainder& Remainder : Remainders)
+		{
+			const FNGNodeTypeSpawnRule& Rule = Rules[Remainder.RuleIndex];
+			int32& Count = Counts.FindOrAdd(Rule.NodeType);
+
+			if (Count < Rule.MaxCount)
+			{
+				++Count;
+				++CurrentTotal;
+				bAdded = true;
+				break;
+			}
+		}
+
+		if (!bAdded)
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("Node spawn rules could not fill %d nodes within MaxCount limits. Filling with %s."),
+				AssignableNodeCount - CurrentTotal, *StaticEnum<ENodeType>()->GetNameStringByValue(static_cast<int64>(Rules[0].NodeType)));
+			Counts.FindOrAdd(Rules[0].NodeType) += AssignableNodeCount - CurrentTotal;
+			CurrentTotal = AssignableNodeCount;
+		}
+	}
+
+	TArray<int32> TrimOrder;
+	for (int32 RuleIndex = Rules.Num() - 1; RuleIndex >= 0; --RuleIndex)
+	{
+		TrimOrder.Add(RuleIndex);
+	}
+
+	while (CurrentTotal > AssignableNodeCount)
+	{
+		bool bRemoved = false;
+
+		for (int32 RuleIndex : TrimOrder)
+		{
+			const FNGNodeTypeSpawnRule& Rule = Rules[RuleIndex];
+			int32& Count = Counts.FindOrAdd(Rule.NodeType);
+
+			if (Count > Rule.MinCount)
+			{
+				--Count;
+				--CurrentTotal;
+				bRemoved = true;
+				break;
+			}
+		}
+
+		if (!bRemoved)
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("Node spawn rule MinCount total exceeds assignable node count. Reducing lowest priority minimum."));
+
+			for (int32 RuleIndex : TrimOrder)
+			{
+				const FNGNodeTypeSpawnRule& Rule = Rules[RuleIndex];
+				int32& Count = Counts.FindOrAdd(Rule.NodeType);
+
+				if (Count > 0)
+				{
+					--Count;
+					--CurrentTotal;
+					bRemoved = true;
+					break;
+				}
+			}
+
+			if (!bRemoved)
+			{
+				break;
+			}
+		}
+	}
+
+	return Counts;
+}
+
+TArray<ENodeType> UNGMapGeneratorComponent::BuildShuffledNodeTypePool(const TMap<ENodeType, int32>& NodeTypeCounts)
+{
+	TArray<ENodeType> TypePool;
+	const TArray<FNGNodeTypeSpawnRule> Rules = GetEffectiveNodeTypeSpawnRules();
+
+	for (const FNGNodeTypeSpawnRule& Rule : Rules)
+	{
+		const int32* Count = NodeTypeCounts.Find(Rule.NodeType);
+		if (!Count)
+		{
+			continue;
+		}
+
+		for (int32 i = 0; i < *Count; ++i)
+		{
+			TypePool.Add(Rule.NodeType);
+		}
+	}
+
+	for (int32 i = TypePool.Num() - 1; i > 0; --i)
+	{
+		const int32 SwapIndex = RandomStream.RandRange(0, i);
+		TypePool.Swap(i, SwapIndex);
+	}
+
+	return TypePool;
 }
 
 FGameplayTag UNGMapGeneratorComponent::GetTagForNodeType(ENodeType Type)
@@ -356,6 +576,8 @@ FGameplayTag UNGMapGeneratorComponent::GetTagForNodeType(ENodeType Type)
 
 void UNGMapGeneratorComponent::AssignNodeTypes()
 {
+	TArray<FMapNodeData*> AssignableNodes;
+
 	for (FMapNodeData& Node : GeneratedNodes)
 	{
 		if (Node.LayerIndex == 0)
@@ -368,9 +590,20 @@ void UNGMapGeneratorComponent::AssignNodeTypes()
 		}
 		else
 		{
-			Node.NodeType = PickRandomNodeType();
+			AssignableNodes.Add(&Node);
 		}
+	}
 
+	const TMap<ENodeType, int32> NodeTypeCounts = BuildNodeTypeCounts(AssignableNodes.Num());
+	const TArray<ENodeType> TypePool = BuildShuffledNodeTypePool(NodeTypeCounts);
+
+	for (int32 i = 0; i < AssignableNodes.Num(); ++i)
+	{
+		AssignableNodes[i]->NodeType = TypePool.IsValidIndex(i) ? TypePool[i] : ENodeType::General;
+	}
+
+	for (FMapNodeData& Node : GeneratedNodes)
+	{
 		Node.NodeTag = GetTagForNodeType(Node.NodeType);
 	}
 }

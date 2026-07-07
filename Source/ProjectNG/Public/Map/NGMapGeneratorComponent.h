@@ -10,6 +10,38 @@
 class UMapNodeDataAsset;
 class ANGMapNode;
 
+USTRUCT(BlueprintType)
+struct FNGNodeTypeSpawnRule
+{
+	GENERATED_BODY()
+
+	FNGNodeTypeSpawnRule() = default;
+
+	FNGNodeTypeSpawnRule(ENodeType InNodeType, float InWeight, int32 InMinCount, int32 InMaxCount, int32 InFillPriority)
+		: NodeType(InNodeType)
+		, Weight(InWeight)
+		, MinCount(InMinCount)
+		, MaxCount(InMaxCount)
+		, FillPriority(InFillPriority)
+	{
+	}
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|NodeSpawnRules")
+	ENodeType NodeType = ENodeType::General;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|NodeSpawnRules", meta = (ClampMin = "0.0"))
+	float Weight = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|NodeSpawnRules", meta = (ClampMin = "0"))
+	int32 MinCount = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|NodeSpawnRules", meta = (ClampMin = "0"))
+	int32 MaxCount = 999;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Map|NodeSpawnRules")
+	int32 FillPriority = 0;
+};
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJECTNG_API UNGMapGeneratorComponent : public UActorComponent
 {
@@ -49,7 +81,9 @@ private:
 	void ResolveNodePositionOverlaps();
 	void AdjustLongConnectedNodeDistances();
 
-	ENodeType PickRandomNodeType();
+	TArray<FNGNodeTypeSpawnRule> GetEffectiveNodeTypeSpawnRules() const;
+	TMap<ENodeType, int32> BuildNodeTypeCounts(int32 AssignableNodeCount) const;
+	TArray<ENodeType> BuildShuffledNodeTypePool(const TMap<ENodeType, int32>& NodeTypeCounts);
 	FGameplayTag GetTagForNodeType(ENodeType Type);
 
 public:
@@ -102,6 +136,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Map|NodeWeights")
 	float EliteWeight = 0.05f;
+
+	UPROPERTY(EditAnywhere, Category = "Map|NodeSpawnRules")
+	TArray<FNGNodeTypeSpawnRule> NodeTypeSpawnRules;
 
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "Map")

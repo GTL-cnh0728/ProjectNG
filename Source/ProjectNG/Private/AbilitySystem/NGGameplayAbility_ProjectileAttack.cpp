@@ -5,7 +5,7 @@
 
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Pawn/NGPawnBase.h"
-#include "Combat/Weapon/NGProjectile.h"
+#include "Combat/NGProjectile.h"
 #include "Core/NGDeveloperSettings.h"
 #include "Core/NGPoolSubSystem.h"
 
@@ -19,18 +19,19 @@ void UNGGameplayAbility_ProjectileAttack::ActivateAbility(const FGameplayAbility
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 	
-	
 	UAbilityTask_WaitGameplayEvent* WaitEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
 		this,
 		FGameplayTag::RequestGameplayTag(FName("Event.Attack.Release"))
 		);
-	WaitEventTask->EventReceived.AddDynamic(this, &UNGGameplayAbility_ProjectileAttack::OnReleaseProjectile);
+	WaitEventTask->EventReceived.AddDynamic(this, &UNGGameplayAbility_ProjectileAttack::OnAttackReceived);
 	WaitEventTask->ReadyForActivation();
 	
 }
 
-void UNGGameplayAbility_ProjectileAttack::OnReleaseProjectile(FGameplayEventData Payload)
+void UNGGameplayAbility_ProjectileAttack::OnAttackReceived(FGameplayEventData Payload)
 {
+	Super::OnAttackReceived(Payload);
+	
 	if (!GetWorld()) return;
 	if (!K2_HasAuthority())	return;
 
@@ -44,9 +45,9 @@ void UNGGameplayAbility_ProjectileAttack::OnReleaseProjectile(FGameplayEventData
 			
 			if (Pool)
 			{
-				FVector SpawnLocation = GetUnitPawnFromActorInfo()->GetActorLocation() + GetUnitPawnFromActorInfo()->GetActorForwardVector() * 100.f;
+				FVector SpawnLocation = GetNGPawnFromActorInfo()->GetActorLocation() + GetNGPawnFromActorInfo()->GetActorForwardVector() * 100.f;
 	
-				FTransform SpawnTransform = GetUnitPawnFromActorInfo()->GetActorTransform();
+				FTransform SpawnTransform = GetNGPawnFromActorInfo()->GetActorTransform();
 				SpawnTransform.SetLocation(SpawnLocation);
 				
 				//TODO: LoadSynchronous는 로딩시 멈춤유발가능성, 대용량로드시 멈춰도될때 전부 로드해놓기
@@ -57,7 +58,6 @@ void UNGGameplayAbility_ProjectileAttack::OnReleaseProjectile(FGameplayEventData
 				
 				if (Projectile && DamageEffectClass)
 				{
-					FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(DamageEffectClass, GetAbilityLevel());
 					Projectile->SetSpecHandle(SpecHandle);
 				}
 			}

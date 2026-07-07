@@ -30,9 +30,9 @@ public:
 	static ANGUnitPawn* SpawnUnitPawnAtGrid(ANGPlayerController* OwnerController, FGameplayTag UnitTag,
 	                                        const FGridAddress& SpawnGridAddress);
 
-	static ANGEnemyPawn* SpawnEnemyPawn(ANGPlayerController* OwnerController, FEnemySpawnInfo EnemySpawnInfo);
+	static ANGEnemyPawn* SpawnEnemyPawn(ANGPlayerController* OwnerController, const FEnemySpawnInfo& EnemySpawnInfo);
 		
 protected:
-	static ANGPawnBase* Internal_SpawnPawn(UObject* WorldContextObject, TSubclassOf<ANGPawnBase> PawnClass,
+	static ANGPawnBase* Internal_SpawnPawn(const UObject* WorldContextObject, TSubclassOf<ANGPawnBase> PawnClass,
 	                              FTransform SpawnTransform, AActor* Owner);
 };

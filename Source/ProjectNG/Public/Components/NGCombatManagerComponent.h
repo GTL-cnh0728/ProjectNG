@@ -29,7 +29,8 @@ protected:
 public:
 	void StartCombat();
 	void ReturnSpectatorHome(ANGPlayerState* AwayPlayer);
-	void NotifyEndCombat(const ANGPlayerState* TargetPlayer, ECombatResult Result);
+	void NotifyEndCombat(ANGPlayerState* TargetPlayer, ECombatResult Result);
+	int32 CalculateTransferPenaltyGold(ANGPlayerState* Loser);
 
 	void NotifyPawnDied(ANGPawnBase* DeadPawn);
 
@@ -40,9 +41,9 @@ public:
 
 	void EnqueueCombatPhase(ANGPlayerState* PS, const FEnemySquadData* CPUCombatData = nullptr);
 	void StartCountingCombat();
-	void MatchingCombatUser();
+	void MatchingCombatUser(bool bIsShuffle);
 
-	void RequestSpawnSquadByPlayer(ANGPlayerController* RequestingPC, const FEnemySquadData& SquadData);
+	void RequestSpawnSquadByPlayer(ANGPlayerController* RequestingPC, const FEnemySquadData& SquadData) const;
 	
 	void ProcessPlayerFlee(ANGPlayerController* PlayerController);
 	

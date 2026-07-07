@@ -3,11 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "AttributeSet.h"
 #include "GameplayTags.h"
 #include "Abilities/GameplayAbility.h"
 #include "Engine/DataTable.h"
 #include "UnitAbilityDataRow.generated.h"
+class UNGGameplayAbility;
 
 USTRUCT(BlueprintType)
 struct FUnitSkillSlotData
@@ -19,7 +19,7 @@ public:
 	FName SlotName = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill", DisplayName = "기본 스킬")
-	TSoftClassPtr<UGameplayAbility> DefaultSkillAbility;
+	TSoftClassPtr<UNGGameplayAbility> DefaultSkillAbility;
 };
 
 USTRUCT(BlueprintType)
@@ -27,6 +27,8 @@ struct FUnitAbilityData : public FTableRowBase
 {
 	GENERATED_BODY()
 
+	FUnitAbilityData();
+	
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Identity", DisplayName = "유닛 식별 태그")
 	FGameplayTag IdentificationTag = FGameplayTag();
@@ -37,12 +39,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stat", DisplayName = "기본 스탯 목록", meta=(ToolTip="MaxHealth, Health처럼 의존 관계가 있는 값은 최대값을 먼저 선언하세요. 예: MaxHealth=100, Health=100"))
 	TMap<FGameplayAttribute, float> DefaultStats;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability", DisplayName = "고유 능력")
-	TSoftClassPtr<UGameplayAbility> UniqueAbility;
-	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability", DisplayName = "고유 패시브 능력")
 	TSoftClassPtr<UGameplayAbility> PassiveAbility;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability", DisplayName = "스킬 슬롯 목록")
-	TArray<FUnitSkillSlotData> SkillSlots;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability", DisplayName = "고유 직업 스킬")
+	TSubclassOf<UNGGameplayAbility> JobSkill;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ability", DisplayName = "평타 스킬")
+	TSubclassOf<UNGGameplayAbility> DefaultAttackSkill;
 };

@@ -65,7 +65,6 @@ void ANGMapGenerator::InitializedNodes()
 	TownIndices.Add(FirstTownIdx);
 	
 	// Native GameplayTags
-	const FNGGameplayTags& GameplayTags = FNGGameplayTags::Get();
 
 	// 최장거리 샘플링을 통해 가장 먼 곳에 새로운 마을 노드 위치 선택.
 	while (TownPoints.Num() < NumberOfTowns)
@@ -115,11 +114,11 @@ void ANGMapGenerator::InitializedNodes()
 		
 		if (RandomStream.FRand() < 0.5f)
 		{
-			NewTown.NodeTag = GameplayTags.Node_Town_Dwarf;
+			NewTown.NodeTag = NGGameplayTags::Node_Town_Dwarf;
 		}
 		else
 		{
-			NewTown.NodeTag = GameplayTags.Node_Town_Elf;
+			NewTown.NodeTag = NGGameplayTags::Node_Town_Elf;
 		}
 		
 		float WorldX = (TownPoints[i].X * MapRadius) - (MapRadius / 2.0f);
@@ -160,11 +159,11 @@ void ANGMapGenerator::InitializedNodes()
 
 		if (RandomStream.FRand() < 0.2f)
 		{
-			EventNode.NodeTag = GameplayTags.Node_Event_Combat;
+			EventNode.NodeTag = NGGameplayTags::Node_Event_Combat;
 		}
 		else
 		{
-			EventNode.NodeTag = GameplayTags.Node_Event_Default;
+			EventNode.NodeTag = NGGameplayTags::Node_Event_Default;
 		}
 		GeneratedNodes.Add(EventNode);
 	}

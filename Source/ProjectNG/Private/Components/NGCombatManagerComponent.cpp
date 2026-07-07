@@ -50,15 +50,17 @@ void UNGCombatManagerComponent::StartCountingCombat()
 	GetWorld()->GetTimerManager().SetTimer(FightStartTimerHandle, this, &UNGCombatManagerComponent::StartCombat, FightWaitTime, false);	
 }
 
-void UNGCombatManagerComponent::MatchingCombatUser()
+void UNGCombatManagerComponent::MatchingCombatUser(bool bIsShuffle)
 {
-	Algo::RandomShuffle(CombatPSMatchingQueue);
+	if (bIsShuffle)
+	{
+		Algo::RandomShuffle(CombatPSMatchingQueue);
+	}
 	
 	uint8 Checker = 0;
 	
 	FCombatSettingData CombatSettingData;
 	
-	//TODO: 홀수일때 처리필요 (부전승)
 	for (ANGPlayerState* PS : CombatPSMatchingQueue)
 	{
 		CombatSettingData.Players[Checker++] = PS;
@@ -74,7 +76,7 @@ void UNGCombatManagerComponent::MatchingCombatUser()
 }
 
 void UNGCombatManagerComponent::RequestSpawnSquadByPlayer(ANGPlayerController* RequestingPC,
-	const FEnemySquadData& SquadData)
+	const FEnemySquadData& SquadData) const
 {
 	if (!GetOwner()->HasAuthority())	return;
 	
@@ -92,10 +94,6 @@ void UNGCombatManagerComponent::ProcessPlayerFlee(ANGPlayerController* PlayerCon
 {
 	if (ANGPlayerState* PS = PlayerController->GetPlayerState<ANGPlayerState>())
 	{
-		// UE_LOG(LogTemp, Log, TEXT("ProcessPlayerFlee"));
-		//TODO: 돈 구현하고 돈 넘겨주는거 만들기
-		// 
-		
 		NotifyEndCombat(PS, ECombatResult::Lose);
 	}
 }
@@ -131,12 +129,37 @@ void UNGCombatManagerComponent::ReturnSpectatorHome(ANGPlayerState* AwayPlayer)
 	}
 }
 
-void UNGCombatManagerComponent::NotifyEndCombat(const ANGPlayerState* TargetPlayer, ECombatResult Result)
+void UNGCombatManagerComponent::NotifyEndCombat(ANGPlayerState* TargetPlayer, ECombatResult Result)
 {
 	//폰이 죽었을때 자기가 졌는지 확인하고 호출하는애라 CombatDatas에서 찾아서 반대편에 애는 승리처리
 	if (!GetOwner()->HasAuthority())	return;
 
 	UE_LOG(LogTemp, Log, TEXT("NotifyEndCombat"));
+	
+	bool bIsNewNotification = false;
+	
+	auto UpdateCombatResult = [&](ANGPlayerState* InPlayer, ECombatResult InResult, FReward InReward)
+	{
+		if (!InPlayer) return;
+
+		FCombatResultData ResultData;
+		ResultData.EarnedReward = InReward;
+
+		if (CombatResultDictionary.Find(InPlayer) == nullptr)
+		{
+			bIsNewNotification = true;
+			ResultData.WinResult = InResult;
+			CombatResultDictionary.Add(InPlayer, ResultData);
+		}
+		else
+		{
+			uint8 CombinedResult = static_cast<uint8>(CombatResultDictionary[InPlayer].WinResult) | static_cast<uint8>(InResult);
+			ResultData.WinResult = static_cast<ECombatResult>(CombinedResult);
+			CombatResultDictionary[InPlayer] = ResultData;
+		}
+
+		InPlayer->FinishCombat();
+	};
 	
 	int32 FoundDataIndex = INDEX_NONE;
 	int32 TargetPlayerIndex = INDEX_NONE;
@@ -147,59 +170,43 @@ void UNGCombatManagerComponent::NotifyEndCombat(const ANGPlayerState* TargetPlay
 		if (CombatDatas[i].Players.IsValidIndex(1) && CombatDatas[i].Players[1] == TargetPlayer) { FoundDataIndex = i; TargetPlayerIndex = 1; break; }
 	}
 	
-	bool bIsNewNotification = false;
-	
-	if (FoundDataIndex != INDEX_NONE)
+	if (FoundDataIndex == INDEX_NONE)
 	{
-		int32 WinnerPlayerIndex = Result == ECombatResult::Win ? TargetPlayerIndex : 1 - TargetPlayerIndex;
-		const FCombatSettingData& TargetCombat = CombatDatas[FoundDataIndex];
+		UE_LOG(LogTemp, Error, TEXT("NotifyEndCombat: Cannot find CombatData for TargetPlayer!"));
+		return;
+	}
+	
+	if (CombatDatas[FoundDataIndex].bIsCPUCombat)
+	{
+		const FReward& Reward = CombatDatas[FoundDataIndex].EnemySquadData.Reward;
 		
-		if (TargetCombat.Players.IsValidIndex(WinnerPlayerIndex))
+		UpdateCombatResult(TargetPlayer, Result, Reward);
+	}
+	else
+	{
+		if (FoundDataIndex != INDEX_NONE)
 		{
-			if (ANGPlayerState* Winner = TargetCombat.Players[WinnerPlayerIndex].Get())
+			int32 WinnerPlayerIndex = Result == ECombatResult::Win ? TargetPlayerIndex : 1 - TargetPlayerIndex;
+			int32 LoserPlayerIndex = 1 - WinnerPlayerIndex;
+
+			const FCombatSettingData& TargetCombat = CombatDatas[FoundDataIndex];
+			
+			ANGPlayerState* Winner = TargetCombat.Players[WinnerPlayerIndex].Get();
+			ANGPlayerState* Loser = TargetCombat.Players[LoserPlayerIndex].Get();
+
+			int32 EarnedGold = CalculateTransferPenaltyGold(Loser);	
+			
+			FReward WinReward = FReward(EarnedGold);
+			FReward LoseReward = FReward(-EarnedGold);
+			
+			if (TargetCombat.Players.IsValidIndex(WinnerPlayerIndex))
 			{
-				FCombatResultData ResultData;
-				ResultData.EarnedGold = 100.f;
-				
-				if (CombatResultDictionary.Find(Winner) == nullptr)
-				{
-					ResultData.WinResult = ECombatResult::Win;
-					CombatResultDictionary.Add(Winner, ResultData);
-					bIsNewNotification = true;
-				}else
-				{
-					uint8 WinCombinedResult = static_cast<uint8>(CombatResultDictionary[Winner].WinResult) | static_cast<uint8>(ECombatResult::Win);
-					ResultData.WinResult = static_cast<ECombatResult>(WinCombinedResult);
-					CombatResultDictionary[Winner] = ResultData;
-				}
-				
-				Winner->FinishCombat();
+				UpdateCombatResult(Winner, ECombatResult::Win, WinReward);
 			}
-		}
-		
-		int32 LoserPlayerIndex = 1 - WinnerPlayerIndex;
-		
-		if (TargetCombat.Players.IsValidIndex(LoserPlayerIndex))
-		{
-			if (ANGPlayerState* Loser = TargetCombat.Players[LoserPlayerIndex].Get())
+			
+			if (TargetCombat.Players.IsValidIndex(LoserPlayerIndex))
 			{
-				FCombatResultData ResultData;
-				// 여기서 싸움 전 체력이랑 끝났을때 남은체력 비교해서 최소20%에서 최대 90%로 돈 뺏어가기
-				ResultData.EarnedGold = -100.f;
-				
-				if (CombatResultDictionary.Find(Loser) == nullptr)
-				{
-					ResultData.WinResult = ECombatResult::Lose;
-					CombatResultDictionary.Add(Loser, ResultData);
-					bIsNewNotification = true;
-				}else
-				{
-					uint8 LoseCombinedResult = static_cast<uint8>(CombatResultDictionary[Loser].WinResult) | static_cast<uint8>(ECombatResult::Lose);
-					ResultData.WinResult = static_cast<ECombatResult>(LoseCombinedResult);
-					CombatResultDictionary[Loser] = ResultData;
-				}
-				
-				Loser->FinishCombat();
+				UpdateCombatResult(Loser, ECombatResult::Lose, LoseReward);
 			}
 		}
 	}
@@ -212,6 +219,27 @@ void UNGCombatManagerComponent::NotifyEndCombat(const ANGPlayerState* TargetPlay
 			FinishCombat();
 		}
 	}
+}
+
+int32 UNGCombatManagerComponent::CalculateTransferPenaltyGold(ANGPlayerState* Loser)
+{
+	// 돈 넘겨줄때 필요한
+	if (UNGPocketComponent* Pocket = Loser->GetPlayerPocket())
+	{
+		float HP, _;
+		Pocket->CollectTotalUnitHPAndMaxHP(_, HP);
+		float MaxHP = Pocket->GetTotalUnitMaxHPSnapShot();
+		
+		float CurrentHPRatio = HP/MaxHP;
+		float FinalPenaltyRatio = FMath::GetMappedRangeValueClamped(FVector2D(.2f, .8f), FVector2D(.8f, .2f), CurrentHPRatio);
+		float MyGold = Loser->GetOwnedGold(); 
+		int32 TotalGold = FMath::RoundToInt(MyGold * FinalPenaltyRatio);
+		UE_LOG(LogTemp, Display, TEXT("Flee Penalty: Actual HP %f%% -> Calculated Penalty %f%% -> Transferred %d Gold"), 
+			CurrentHPRatio * 100.f, FinalPenaltyRatio * 100.f, TotalGold);
+		return TotalGold;
+	}
+	
+	return 0.f;
 }
 
 void UNGCombatManagerComponent::FinishCombat()

@@ -84,7 +84,7 @@ void UNGPathFindingComponent::FindPath(const FGridAddress& StartAddress,
                 continue;
 
             // 목적지가 아닌데 타일이 비어있지 않다면(장애물/다른 폰) 갈 수 없음
-            if (Neighbor != TargetIdx && !GridMap->IsGridIndexEmpty(Neighbor))
+            if (Neighbor != TargetIdx && !GridMap->CanGoGrid(Neighbor))
                 continue;
 
             // 이동 비용은 인접 타일이므로 무조건 1

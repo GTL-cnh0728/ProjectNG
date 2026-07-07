@@ -80,6 +80,8 @@ private:
 	TObjectPtr<UDataTable> ProbabilityTable;
 
 public:
+	bool bDebugJohnAppeared = true;
+	
 	void GetPlacedUnits(TArray<ANGPawnBase*>& OutUnits);
 	
 	bool IsAnnihilated();
@@ -92,10 +94,24 @@ public:
 	void RemoveUnitFromPocket(ANGPawnBase* Unit);
 	
 	TArray<ANGPawnBase*>& GetOwnedUnitPocket()	{ return OwnedUnitPocket; }
+
+	void CollectTotalUnitHPAndMaxHP(float& OutMaxHP, float& OutHP);
+	
+	void SetTotalUnitHPSnapShot(float InTotalHP){TotalUnitHPSnapShot = InTotalHP;}
+	float GetTotalUnitHPSnapShot() const {return TotalUnitHPSnapShot;}
+	
+	void SetTotalUnitMaxHPSnapShot(float InMaxTotalHP){TotalUnitMaxHPSnapShot = InMaxTotalHP;}
+	float GetTotalUnitMaxHPSnapShot() const {return TotalUnitMaxHPSnapShot;}
 	
 private:
 	UPROPERTY(Replicated, VisibleAnywhere, Category = "Game|Unit")
 	TArray<ANGPawnBase*> OwnedUnitPocket;
+	
+	UPROPERTY()
+	float TotalUnitHPSnapShot;
+
+	UPROPERTY()
+	float TotalUnitMaxHPSnapShot;
 	
 /*************************************/
 /*				Debug용				 */

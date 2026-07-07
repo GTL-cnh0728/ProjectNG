@@ -3,9 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AbilitySystem/FAttackLevelData.h"
 #include "Engine/DeveloperSettings.h"
 #include "NGDeveloperSettings.generated.h"
 
+class UNGItemDB;
 class UNGEnemyDataAsset;
 class AArena;
 class ANGPawnBase;
@@ -25,9 +27,6 @@ public:
 	
 	UPROPERTY(Config, EditAnywhere, Category = "NG Pool Settings")
 	TMap<TSubclassOf<ANGProjectile>, TSoftClassPtr<ANGProjectile>> ProjectileClass;
-	
-	UPROPERTY(Config, EditAnywhere, Category = "NG Pool Settings")
-	TMap<TSubclassOf<ANGPawnBase>, TSoftClassPtr<ANGPawnBase>> PawnClass;
 
 	UPROPERTY(Config, EditAnywhere, Category = "NG Pool Settings")
 	TSoftClassPtr<AArena> ArenaClass;
@@ -38,4 +37,9 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "NG Pool Settings")
 	TSoftObjectPtr<UNGEnemyDataAsset> EnemyDataAsset;
 	
+	UPROPERTY(Config, EditAnywhere, Category = "NG Pool Settings")
+	TSoftObjectPtr<UDataTable> AttackLevelData;
+
+	UPROPERTY(Config, EditAnywhere, Category = "NG Pool Settings")
+	TSoftObjectPtr<UNGItemDB> ItemDataBase;
 };

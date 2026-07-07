@@ -4,10 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "SelectableInterface.h"
+#include "Core/NGUnitData.h"
 #include "Pawn/NGPawnBase.h"
 #include "NGUnitPawn.generated.h"
 
-class UNGWeaponData;
+class UNGItemInstance;
 
 UCLASS()
 class PROJECTNG_API ANGUnitPawn : public ANGPawnBase, public ISelectableInterface
@@ -37,8 +38,6 @@ protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 private:
-	UFUNCTION()
-	void EquipWeapon(UNGWeaponData* NewWeaponData);
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Drag Drop")
 	float DragInterpSpeed = 15.0f;

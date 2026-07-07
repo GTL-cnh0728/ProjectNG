@@ -2,6 +2,9 @@
 
 #include "UI/HUD/NGHUD.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/NGInventoryComponent.h"
+#include "UI/NGInventoryWidget.h"
+#include "UI/NGShopControlWidget.h"
 #include "UI/NGUnitInfoWidget.h"
 #include "UI/NGUserWidget.h"
 #include "UI/WidgetController/NGRollShopWidgetController.h"
@@ -32,21 +35,37 @@ UUnitDetailsWidgetController* ANGHUD::CreateUnitDetailsWidgetController(const FW
     return UnitDetailsWidgetController;
 }
 
+void ANGHUD::ShowInventory(bool bVisible) const
+{
+    if (!MainWidget || !MainWidget->InventoryWidget)   return;
+    
+    ESlateVisibility Visibility = bVisible ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed;
+
+    MainWidget->InventoryWidget->SetVisibility(Visibility);
+}
+
+void ANGHUD::RefreshInventory()
+{
+    if (!MainWidget || !MainWidget->InventoryWidget)   return;
+    
+    MainWidget->InventoryWidget->RefreshInventory();
+}
+
 void ANGHUD::InitializeHUD(APlayerController* PC, APlayerState* PS)
 {
     checkf(MainWidgetClass, TEXT("[HUD] MainWidgetClass not initialized"));
     checkf(RollShopWidgetControllerClass, TEXT("[HUD] RollShopWidgetController not initialized"));
     checkf(UnitInfoWidgetClass, TEXT("[HUD] UnitInfoWidgetClass not initialized"));
     
-    UUserWidget* Widget = CreateWidget<UUserWidget>(GetWorld(), MainWidgetClass);
-    MainWidget = Cast<UNGUserWidget>(Widget);
+    MainWidget = CreateWidget<UNGShopControlWidget>(PC, MainWidgetClass);
 
     const FWidgetParams WidgetParams(PC, PS);
     UNGRollShopWidgetController* MainWidgetC = CreateRollShopWidgetController(WidgetParams); 
     MainWidget->ConnectWidgetController(MainWidgetC);
+    
     MainWidgetC->BroadcastInitialValues();
     
-    UnitInfoWidget = CreateWidget<UNGUnitInfoWidget>(GetWorld(), UnitInfoWidgetClass);
+    UnitInfoWidget = CreateWidget<UNGUnitInfoWidget>(PC, UnitInfoWidgetClass);
     
     if (UnitInfoWidget)
     {
@@ -58,8 +77,15 @@ void ANGHUD::InitializeHUD(APlayerController* PC, APlayerState* PS)
         UnitInfoWidget->SetVisibility(ESlateVisibility::Collapsed);
     }
     
-    if (Widget)
+    if (MainWidget)
     {
-        Widget->AddToViewport();
+        MainWidget->AddToViewport();
+    }
+    
+    ANGPlayerState* NGPS = CastChecked<ANGPlayerState>(PS);
+    
+    if (UNGInventoryComponent* Inven = NGPS ? NGPS->GetPlayerInventory() : nullptr)
+    {
+        Inven->OnInventoryChanged.AddDynamic(this, &ANGHUD::RefreshInventory);
     }
 }

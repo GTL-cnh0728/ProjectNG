@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "NGCombatReward.h"
 #include "Engine/DataAsset.h"
 #include "NGEnemyDataAsset.generated.h"
 
@@ -40,6 +41,9 @@ struct FEnemySquadData
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Squad")
 	TArray<FEnemySpawnInfo> SpawnUnits;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Squad")
+	FReward Reward;
 };
 
 // 3. 특정 구역(Zone)에 매핑될 스쿼드 후보 리스트

@@ -7,11 +7,14 @@
 #include "EnhancedInputSubsystems.h"
 #include "Blueprint/UserWidget.h"
 #include "Combat/Grid/Arena.h"
+#include "Combat/Item/NGItemFactory.h"
 #include "Components/NGCombatManagerComponent.h"
+#include "Components/NGInventoryComponent.h"
 #include "Core/NGDeveloperSettings.h"
 #include "Pawn/NGUnitPawn.h"
 #include "Pawn/SelectableInterface.h"
 #include "Core/NGBlueprintLibrary.h"
+#include "Core/NGGameplayTags.h"
 #include "Core/NGSpawnHelper.h"
 #include "GameModes/NGInGameMode.h"
 #include "Input/NGInputComponent.h"
@@ -64,7 +67,7 @@ void ANGPlayerController::BeginPlay()
 			}
 		}
 	}
-
+	
 	FInputModeGameAndUI InputMode;
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	InputMode.SetHideCursorDuringCapture(false);
@@ -93,9 +96,20 @@ void ANGPlayerController::Tick(float DeltaTime)
 	
 	GetMousePosition(CurrentMouseLocation.X, CurrentMouseLocation.Y);
 	
-	if (IsLocalController() && DraggingUnit.IsValid())
+	if (IsLocalController())
 	{
-		PerformDragUpdate(DeltaTime);
+		if (DraggingUnit.IsValid())
+		{
+			PerformDragUpdate(DeltaTime);
+		}
+	
+		if (CurrentDraggingItem)
+		{
+			if (WasInputKeyJustReleased(EKeys::LeftMouseButton))
+			{
+				OnItemDragReleased();
+			}
+		}
 	}
 	
 	if (bShowDebugGrid)
@@ -253,6 +267,53 @@ ANGPawnBase* ANGPlayerController::GetHoveringUnit() const
 	return HoveringUnit.Get();
 }
 
+void ANGPlayerController::SetDragItemWithUpdateUI(UNGItemInstance* InItem)
+{
+	if (HasAuthority())	return;
+	
+	SetDragItem(InItem);
+	
+	bool bIsDraggingItem = InItem ? true : false;
+
+	if (const ANGHUD* NGHUD = GetHUD<ANGHUD>())
+	{
+		if (bIsDraggingItem)
+		{
+			NGHUD->ShowInventory(false);
+		}else
+		{
+			NGHUD->ShowInventory(true);
+		}
+	}
+}
+
+void ANGPlayerController::SetDragItem(UNGItemInstance* InItem)
+{
+	CurrentDraggingItem = InItem;
+}
+
+void ANGPlayerController::OnItemDragReleased()
+{
+	UE_LOG(LogTemp, Log, TEXT("ANGPlayerController::OnItemDragReleased"));
+	
+	//아이템 드래그 관리
+	if (CurrentDraggingItem)
+	{
+		if (HoveringUnit.IsValid())
+		{
+			UE_LOG(LogTemp, Log, TEXT("EquipItem!"));
+			ANGPlayerState* PS = GetPlayerState<ANGPlayerState>();
+			if (UNGInventoryComponent* Inven = PS ? PS->GetPlayerInventory() : nullptr)
+			{
+				Inven->Server_EquipItem(HoveringUnit.Get(), CastChecked<UNGEquipmentItemInstance>(CurrentDraggingItem));
+			}
+		}
+		
+		//아이템 드래그중이면 끝났을떄 다시 인벤을 켜줘야하기 때문에 밖에서 호출하면 인벤이 꺼져있는상황에서도 mouse release상황에 인벤이 켜짐
+		SetDragItemWithUpdateUI(nullptr);
+	}
+}
+
 void ANGPlayerController::HandleClickPressed(const FInputActionValue& Value)
 {
 	GetMousePosition(ClickStartLocation.X, ClickStartLocation.Y);
@@ -262,6 +323,7 @@ void ANGPlayerController::HandleClickPressed(const FInputActionValue& Value)
 
 void ANGPlayerController::HandleClickReleased(const FInputActionValue& Value)
 {
+	//유닛 드래그 관리
 	if (DraggingUnit.IsValid())
 	{
 		double MouseDelta = (ClickStartLocation - CurrentMouseLocation).Size();
@@ -528,6 +590,35 @@ void ANGPlayerController::Server_RequestStartCombat_Implementation(bool bIsCPUCo
 	}
 }
 
+void ANGPlayerController::Server_RequestToggleJohnAppeared_Implementation()
+{
+	ANGPlayerState* PS = GetPlayerState<ANGPlayerState>();
+	UNGPocketComponent* Pocket = PS ? PS->GetPlayerPocket() : nullptr;
+	if (Pocket)
+	{
+		Pocket->bDebugJohnAppeared = !Pocket->bDebugJohnAppeared;
+	}
+}
+
+void ANGPlayerController::Server_RequestGetItem_Implementation(const FString& ItemName)
+{
+	ANGPlayerState* PS = GetPlayerState<ANGPlayerState>();
+	UNGInventoryComponent* Inventory = PS ? PS->GetPlayerInventory() : nullptr;
+	
+	TMap<FString, FGameplayTag> CmdTags{
+		{"Sword", NGGameplayTags::Item_Equipment_TestSword},
+		{"Relic", NGGameplayTags::Item_Relic_TestRelic},
+		{"Potion", NGGameplayTags::Item_Useable_TestPotion},
+	};
+	
+	UNGItemInstance* NewItem = UNGItemFactory::CreateItem(Inventory, CmdTags[ItemName]);
+	
+	if (Inventory)
+	{
+		Inventory->AddItem(NewItem);
+	}
+}
+
 void ANGPlayerController::Cmd_StartCombat(bool bIsCPUCombat)
 {
 	Server_RequestStartCombat(bIsCPUCombat);
@@ -541,4 +632,14 @@ void ANGPlayerController::Cmd_FinishCombat()
 void ANGPlayerController::Cmd_ToggleDebugGrid()
 {
 	bShowDebugGrid = !bShowDebugGrid;
+}
+
+void ANGPlayerController::Cmd_ToggleJohn()
+{
+	Server_RequestToggleJohnAppeared();
+}
+
+void ANGPlayerController::Cmd_GetItem(const FString& ItemName)
+{
+	Server_RequestGetItem(ItemName);
 }

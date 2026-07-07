@@ -5,10 +5,10 @@
 #include "CoreMinimal.h"
 #include "Engine/DataTable.h"
 #include "GameplayTagContainer.h"
-#include "Pawn/NGUnitPawn.h"
 #include "NGUnitData.generated.h"
 
 class ANGUnitPawn;
+class UNGPawnAnimationSet;
 
 UENUM(BlueprintType)
 enum class EUnitTier : uint8
@@ -63,4 +63,8 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Price")
 	float Price = 10.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation", DisplayName = "유닛이 사용할 애니메이션 셋")
+	TObjectPtr<UNGPawnAnimationSet> AnimationSet;
+	
 };

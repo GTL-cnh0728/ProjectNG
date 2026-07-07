@@ -55,7 +55,7 @@ void ANGInGameMode::RequestStartCombat(APlayerController* PC, bool bIsCPUCombat)
 			}
 		}
 		
-		CombatManagerComponent->MatchingCombatUser();
+		CombatManagerComponent->MatchingCombatUser(true);
 		CombatManagerComponent->StartCountingCombat();
 	}
 }
@@ -263,7 +263,7 @@ void ANGInGameMode::StartActionPhase()
 		PS->SetCurrentNodeID(PS->GetTargetNodeID());
 	}
 
-	CombatManagerComponent->MatchingCombatUser();
+	CombatManagerComponent->MatchingCombatUser(false);
 	CombatManagerComponent->StartCountingCombat();
 
 	GetWorldTimerManager().SetTimer(PhaseTimerHandle, this, &ThisClass::OnActionPhaseTimerTick, 1.0f, true);

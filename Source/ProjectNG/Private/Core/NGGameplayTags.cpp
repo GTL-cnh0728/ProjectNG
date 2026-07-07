@@ -3,24 +3,27 @@
 
 #include "Core/NGGameplayTags.h"
 
-#include "GameplayTagsManager.h"
-
-FNGGameplayTags FNGGameplayTags::GameplayTags;
-
-void FNGGameplayTags::InitializeNativeTags()
+namespace NGGameplayTags
 {
-	GameplayTags.Node_Town_Elf = UGameplayTagsManager::Get().AddNativeGameplayTag(
-	FName("Node.Town.Elf"),FString("Elf Town Node"));
+	UE_DEFINE_GAMEPLAY_TAG(Node_Town_Elf, "Node.Town.Elf");
+	UE_DEFINE_GAMEPLAY_TAG(Node_Town_Dwarf, "Node.Town.Dwarf");
+	UE_DEFINE_GAMEPLAY_TAG(Node_Event_Default, "Node.Event.Default");
+	UE_DEFINE_GAMEPLAY_TAG(Node_Event_Combat, "Node.Event.Combat");
+	UE_DEFINE_GAMEPLAY_TAG(Node_Event_Hidden, "Node.Event.Hidden");
 	
-	GameplayTags.Node_Town_Dwarf = UGameplayTagsManager::Get().AddNativeGameplayTag(
-		FName("Node.Town.Dwarf"), FString("Dwarf Town Node"));
+	UE_DEFINE_GAMEPLAY_TAG(Event, "Event");
+
+	UE_DEFINE_GAMEPLAY_TAG(Ability_Attack, "Ability.Attack");
+	UE_DEFINE_GAMEPLAY_TAG(Event_Attack_Melee, "Event.Attack.Melee");
+	UE_DEFINE_GAMEPLAY_TAG(Event_Attack_Release, "Event.Attack.Release");
+	UE_DEFINE_GAMEPLAY_TAG(Event_JobSkill_John, "Event.JobSkill.John");
 	
-	GameplayTags.Node_Event_Default = UGameplayTagsManager::Get().AddNativeGameplayTag(
-		FName("Node.Event.Default"), FString("Default Event Node"));
+	UE_DEFINE_GAMEPLAY_TAG(Data_BaseDamage,	"Data.BaseDamage");
+	UE_DEFINE_GAMEPLAY_TAG(Data_ADMultiplier, "Data.ADMultiplier");
+	UE_DEFINE_GAMEPLAY_TAG(Data_APMultiplier, "Data.APMultiplier");
+	UE_DEFINE_GAMEPLAY_TAG(Data_SkillMultiplier, "Data.SkillMultiplier");
 	
-	GameplayTags.Node_Event_Combat = UGameplayTagsManager::Get().AddNativeGameplayTag(
-		FName("Node.Event.Combat"), FString("Combat Event Node"));
-	
-	GameplayTags.Node_Event_Hidden = UGameplayTagsManager::Get().AddNativeGameplayTag(
-		FName("Node.Event.Hidden"), FString("Hidden Event Node"));
+	UE_DEFINE_GAMEPLAY_TAG(Item_Equipment_TestSword, "Item.Equipment.TestSword");
+	UE_DEFINE_GAMEPLAY_TAG(Item_Relic_TestRelic, "Item.Relic.TestRelic");
+	UE_DEFINE_GAMEPLAY_TAG(Item_Useable_TestPotion, "Item.Useable.TestPotion");
 }

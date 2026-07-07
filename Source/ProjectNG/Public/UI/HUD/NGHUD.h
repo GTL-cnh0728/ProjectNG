@@ -7,6 +7,7 @@
 #include "UI/NGWidgetController.h"
 #include "NGHUD.generated.h"
 
+class UNGShopControlWidget;
 class UNGUnitInfoWidget;
 class UUnitDetailsWidgetController;
 class UNGUnitAttributeInfoDataAsset;
@@ -27,6 +28,11 @@ public:
     UUnitDetailsWidgetController* GetUnitDetailsWidgetController() { return UnitDetailsWidgetController; }
     UNGUnitInfoWidget* GetUnitInfoWidget() { return UnitInfoWidget; }
     
+    void ShowInventory(bool bVisible) const;
+    
+    UFUNCTION()
+    void RefreshInventory();
+
     void InitializeHUD(APlayerController* PC, APlayerState* PS);
 
 protected:
@@ -36,10 +42,10 @@ protected:
 private:
     //~ Begin Main Widget
     UPROPERTY()
-    TObjectPtr<UNGUserWidget> MainWidget;
+    TObjectPtr<UNGShopControlWidget> MainWidget;
 
     UPROPERTY(EditAnywhere, Category = "UI")
-    TSubclassOf<UUserWidget> MainWidgetClass;
+    TSubclassOf<UNGShopControlWidget> MainWidgetClass;
     //~ End Main Widget
 
     //~ Begin RollShop Widget
@@ -65,4 +71,5 @@ private:
     UPROPERTY(EditAnywhere, Category = "UI")
     TSubclassOf<UUnitDetailsWidgetController> UnitDetailsWidgetControllerClass;
     // ~End UnitDetails WidgetController
+    
 };

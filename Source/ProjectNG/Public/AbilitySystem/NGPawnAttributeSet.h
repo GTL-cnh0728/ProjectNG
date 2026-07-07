@@ -45,22 +45,16 @@ public:
     UFUNCTION()
     void OnRep_MaxMana(const FGameplayAttributeData& OldValue);
 
+    UPROPERTY(BlueprintReadOnly, Category = "Attributes|Vital", ReplicatedUsing = OnRep_ManaRegeneration)
+    FGameplayAttributeData ManaRegeneration;
+    ATTRIBUTE_ACCESSORS(UNGPawnAttributeSet, ManaRegeneration)
+    UFUNCTION()
+    void OnRep_ManaRegeneration(const FGameplayAttributeData& OldValue);
+    
     // =========================================================================
     // Stats (Primary Attributes)
     // =========================================================================
 public:
-    UPROPERTY(BlueprintReadOnly, Category = "Attributes|Stats", ReplicatedUsing = OnRep_Strength)
-    FGameplayAttributeData Strength;
-    ATTRIBUTE_ACCESSORS(UNGPawnAttributeSet, Strength)
-    UFUNCTION()
-    void OnRep_Strength(const FGameplayAttributeData& OldValue);
-
-    UPROPERTY(BlueprintReadOnly, Category = "Attributes|Stats", ReplicatedUsing = OnRep_Intelligence)
-    FGameplayAttributeData Intelligence;
-    ATTRIBUTE_ACCESSORS(UNGPawnAttributeSet, Intelligence)
-    UFUNCTION()
-    void OnRep_Intelligence(const FGameplayAttributeData& OldValue);
-    
     UPROPERTY(BlueprintReadOnly, Category = "Attributes|Stats", ReplicatedUsing = OnRep_Agility)
     FGameplayAttributeData Agility;
     ATTRIBUTE_ACCESSORS(UNGPawnAttributeSet, Agility)
@@ -70,18 +64,14 @@ public:
     UPROPERTY(BlueprintReadOnly, Category = "Attributes|Stats", ReplicatedUsing = OnRep_AttackDamage)
     FGameplayAttributeData AttackDamage;
     ATTRIBUTE_ACCESSORS(UNGPawnAttributeSet, AttackDamage)
-    
     UFUNCTION()
     void OnRep_AttackDamage(const FGameplayAttributeData& OldValue);
-    
     
     UPROPERTY(BlueprintReadOnly, Category = "Attributes|Stats", ReplicatedUsing = OnRep_AbilityPower)
     FGameplayAttributeData AbilityPower;
     ATTRIBUTE_ACCESSORS(UNGPawnAttributeSet, AbilityPower)
-    
     UFUNCTION()
     void OnRep_AbilityPower(const FGameplayAttributeData& OldValue);
-    
     
     UPROPERTY(BlueprintReadOnly, Category = "Attributes|Combat", ReplicatedUsing = OnRep_AttackRange)
     FGameplayAttributeData AttackRange;
@@ -95,52 +85,31 @@ public:
     UFUNCTION()
     void OnRep_AttackSpeed(const FGameplayAttributeData& OldValue);
     
-
     UPROPERTY(BlueprintReadOnly, Category = "Attributes|Combat", ReplicatedUsing = OnRep_CriticalRate)
     FGameplayAttributeData CriticalRate;
     ATTRIBUTE_ACCESSORS(UNGPawnAttributeSet, CriticalRate)
-    
     UFUNCTION()
     void OnRep_CriticalRate(const FGameplayAttributeData& OldValue);
     
     UPROPERTY(BlueprintReadOnly, Category = "Attributes|Combat", ReplicatedUsing = OnRep_DodgeRate)
     FGameplayAttributeData DodgeRate;
     ATTRIBUTE_ACCESSORS(UNGPawnAttributeSet, DodgeRate)
-    
     UFUNCTION()
     void OnRep_DodgeRate(const FGameplayAttributeData& OldValue);
     
     UPROPERTY(BlueprintReadOnly, Category = "Attributes|Combat", ReplicatedUsing = OnRep_PhysicalDefense)
     FGameplayAttributeData PhysicalDefense;
     ATTRIBUTE_ACCESSORS(UNGPawnAttributeSet, PhysicalDefense)
-    
     UFUNCTION()
     void OnRep_PhysicalDefense(const FGameplayAttributeData& OldValue);
     
     UPROPERTY(BlueprintReadOnly, Category = "Attributes|Combat", ReplicatedUsing = OnRep_MagicDefense)
     FGameplayAttributeData MagicDefense;
     ATTRIBUTE_ACCESSORS(UNGPawnAttributeSet, MagicDefense)
-    
     UFUNCTION()
     void OnRep_MagicDefense(const FGameplayAttributeData& OldValue);
     
-    // =========================================================================
-    // Combat
-    // =========================================================================
 public:
-    UPROPERTY(BlueprintReadOnly, Category = "Attributes|Defense", ReplicatedUsing = OnRep_Defense)
-    FGameplayAttributeData Defense;
-    ATTRIBUTE_ACCESSORS(UNGPawnAttributeSet, Defense)
-
-    UFUNCTION()
-    void OnRep_Defense(const FGameplayAttributeData& OldValue);
-    
-    UPROPERTY(BlueprintReadOnly, Category = "Attributes|Combat", ReplicatedUsing = OnRep_TargetCount)
-    FGameplayAttributeData TargetCount;
-    ATTRIBUTE_ACCESSORS(UNGPawnAttributeSet, TargetCount)
-    UFUNCTION()
-    void OnRep_TargetCount(const FGameplayAttributeData& OldValue);
-    
     UPROPERTY(BlueprintReadOnly, Category = "Attributes|Combat", ReplicatedUsing = OnRep_Income)
     FGameplayAttributeData Income;
     ATTRIBUTE_ACCESSORS(UNGPawnAttributeSet, Income)

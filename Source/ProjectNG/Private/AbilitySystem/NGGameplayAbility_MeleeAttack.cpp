@@ -20,11 +20,11 @@ void UNGGameplayAbility_MeleeAttack::ActivateAbility(const FGameplayAbilitySpecH
 
 void UNGGameplayAbility_MeleeAttack::OnAttackReceived(FGameplayEventData Payload)
 {
+	Super::OnAttackReceived(Payload);
 	// UE_LOG(LogTemp, Log, TEXT("OnAttackHitReceived"));
 	
 	if (DamageEffectClass)
 	{
-		FGameplayEffectSpecHandle SpecHandle = MakeOutgoingGameplayEffectSpec(DamageEffectClass, GetAbilityLevel());
 		if (SpecHandle.IsValid())
 		{
 			TArray<TWeakObjectPtr<AActor>> TargetActors = TossTargetData.TargetData.Get(0)->GetActors();

@@ -3,16 +3,16 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "InputActionValue.h"
 #include "NGPlayerState.h"
-#include "Core/NGEnemyDataAsset.h"
+#include "Core/NGEnum.h"
 #include "GameFramework/PlayerController.h"
 #include "NGPlayerController.generated.h"
 
+class UNGItemInstance;
 class ANGUnitPawn;
-enum class EGamePhase : uint8;
 class ANGHUD;
 class AGridMapManager;
-struct FInputActionValue;
 class UNGUnitInfoWidget;
 class UInputMappingContext;
 class UInputAction;
@@ -39,7 +39,7 @@ protected:
 	virtual void SetupInputComponent() override;
 
 	virtual void Tick(float DeltaTime) override;
-
+	
 /*************************************/
 /*				피킹 관련			 */
 /*************************************/
@@ -62,6 +62,10 @@ public:
 	void ClearHoveringUnit();
 	ANGPawnBase* GetHoveringUnit() const; 
 	
+	void SetDragItemWithUpdateUI(UNGItemInstance* InItem);
+	void SetDragItem(UNGItemInstance* InItem);
+	void OnItemDragReleased();
+
 protected:
 
 	void HandleClickPressed(const FInputActionValue& Value);
@@ -112,8 +116,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Selection")
 	TOptional<FGridAddress> PreHighlightGridAddress;
 	
-	UPROPERTY()
-	TObjectPtr<ANGHUD> NGHUD;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Selection")
+	TObjectPtr<UNGItemInstance> CurrentDraggingItem;
 	
 /*************************************/
 /*				리롤 관련			 */
@@ -164,12 +168,18 @@ protected:
 /*************************************/
 
 public:
+	UFUNCTION(Server,Reliable)
+	void Server_RequestToggleJohnAppeared();
+	
 	UFUNCTION(Server, Reliable)
 	void Server_RequestStartCombat(bool bIsCPUCombat);
 	
 	UFUNCTION(Server, Reliable)
 	void Server_RequestStopCombat();
 
+	UFUNCTION(Server, Reliable)
+	void Server_RequestGetItem(const FString& ItemName);
+	
 	UFUNCTION(Exec)
 	void Cmd_StartCombat(bool bIsCPUCombat);
 
@@ -179,6 +189,12 @@ public:
 	UFUNCTION(Exec)
 	void Cmd_ToggleDebugGrid();
 
+	UFUNCTION(Exec)
+	void Cmd_ToggleJohn();
+	
+	UFUNCTION(Exec)
+	void Cmd_GetItem(const FString& ItemName);
+	
 private:
 	bool bShowDebugGrid;
 	

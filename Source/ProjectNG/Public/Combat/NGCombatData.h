@@ -53,13 +53,13 @@ struct FCombatResultData
 	FCombatResultData()
 	{
 		WinResult = ECombatResult::None;
-		EarnedGold = 0;
+		EarnedReward = FReward(0);
 	}
 	
 	UPROPERTY()
 	ECombatResult WinResult;
 	
 	UPROPERTY()
-	float EarnedGold;
+	FReward EarnedReward;
 	//얻은 전리품같은거
 };

@@ -7,19 +7,18 @@
 #include "GameFramework/Pawn.h"
 #include "GameplayAbilitySpecHandle.h"
 #include "GameplayCueInterface.h"
+#include "Core/NGUnitData.h"
+#include "Core/UnitAbilityDataRow.h"
 #include "Interface/Poolable.h"
 #include "Player/NGPlayerState.h"
 #include "NGPawnBase.generated.h"
 
-struct FUnitAbilityData;
-class UNGHPBarWidgetComponent;
+class UNGEquipmentItemInstance;
+class UNGPawnAnimationSet;
+class UNGFloatingBarWidgetComponent;
 class UNGPathFindingComponent;
 class UCapsuleComponent;
 class UNGPawnAttributeSet;
-class ANGCharacterBase;
-class ANGEnemyPawn;
-class USphereComponent;
-class UWidgetComponent;
 class UNGAbilitySystemComponent;
 
 UENUM(BlueprintType)
@@ -54,7 +53,9 @@ public:
 	
 	virtual void Deactivate() override;
 	//~End IPoolable
-
+	
+	virtual void InitializeUnitData(const FUnitData* Data);
+	
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_Activate();
 
@@ -83,26 +84,43 @@ public:
 	
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
-	void HighlightRangeIndicator(FGridAddress PivotAddress) const;
+	virtual bool ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
+	
+	void HighlightRangeIndicator(const FGridAddress& PivotAddress) const;
+	
+	void BindJobSkillTrigger();
+
+	int32 GetOwnerIndex() const { return OwnerIndex; }
+
+	bool EquipItem(UNGEquipmentItemInstance* Item);
+	TArray<TObjectPtr<UNGEquipmentItemInstance>> UnEquipItem();
+	
+	UPROPERTY(EditAnywhere)
+	int32 EquipMaxCount;
 	
 protected:
 	/** 파생 클래스에서 GAS 초기화를 위한 로직을 작성 */
 	virtual void InitAbilityActorInfo()	PURE_VIRTUAL(ANGPawnBase::InitAbilityActorInfo);
 
 	void LookAtInterp(ANGPawnBase* Target, float DeltaTime);
+
 protected:
+	UPROPERTY(Replicated, VisibleAnywhere)
+	TArray<TObjectPtr<UNGEquipmentItemInstance>> EquipmentItems;
+	
 	//캐싱 용도
 	UPROPERTY(BlueprintReadOnly, Category = "GAS|AbilitySystemComponent")
 	TObjectPtr<UNGAbilitySystemComponent> AbilitySystemComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
-	TObjectPtr<UNGHPBarWidgetComponent> HPBarComponent; 
+	TObjectPtr<UNGFloatingBarWidgetComponent> FloatingBarComponent; 
 	
 	virtual void OnHealthChanged(const FOnAttributeChangeData& Data);
-	
+	virtual void OnManaChanged(const FOnAttributeChangeData& Data);
+
 	virtual void OnAttackRangeChanged(const FOnAttributeChangeData& Data);
 
-	void VisualizePath();
+	void VisualizePath() const;
 
 	void CheckCombatState();
 	void ConsiderTransitionState();
@@ -119,8 +137,8 @@ protected:
 	void CollectInRangeUnits(TArray<ANGPawnBase*>& OutEnemies);
 
 	void ForceTransitionToState(EPawnState NewState);
-	void OnApplyHardCrowdControl();
-	void OnRemoveHardCrowdControl();
+	void OnApplyHardCrowdControl() const;
+	void OnRemoveHardCrowdControl() const;
 	void OnExitCurrentState(EPawnState RestState);
 	void OnEnterNewState(EPawnState EnteringState);
 	void SetNextGridPoint(FIntVector2 NewNextGridPoint);
@@ -166,9 +184,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 	float RotationInterpSpeed;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS")
-	TSubclassOf<UGameplayAbility> AttackAbilityClass;
-	
 	UPROPERTY()
 	FGameplayAbilitySpecHandle AttackAbilitySpecHandle;
 	
@@ -179,24 +194,25 @@ protected:
 	
 	FTimerHandle PredictGridReachingTimerHandle;
 	
+	FGameplayAbilitySpecHandle JobSkillAbilityHandle;
+	
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "GAS|AbilitySystemComponent")
 	TObjectPtr<UNGPawnAttributeSet> AttributeSet;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAS|AbilitySystemComponent")
-	TObjectPtr<UDataTable> DefaultAttributeTable;
 	
 	virtual void InitializeAttributes();
 	
 public:
 	void TransitionToState(EPawnState NewState);
 	
+	void SetAttackCheckTimer(bool bRun) const;
+
 	virtual void Initialize(ANGPlayerState* PS);
 	
 	float GetMoveSpeed() const;
-	
-	UAnimMontage* GetAttackMontage() const;
-	
+
+	UNGPawnAnimationSet* GetAnimationSet() const { return AnimationSet; }
+
 	bool IsDead();
 	
 	ANGPawnBase* GetCurrentTarget();
@@ -209,18 +225,16 @@ public:
 	void SetIdentificationTag(const FGameplayTag InIdentificationTag) { IdentificationTag = InIdentificationTag; }
 	
 protected:
-	void UpdateHPBar();
-	
+	void UpdateHPBar() const;
+	void UpdateMPBar() const;
+
 	void InitAbilityData(const FUnitAbilityData& AbilityData);
 	
 	bool CanAddUnitOnCombatGrid(EGridType NewGridType) const;
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
-	TObjectPtr<UAnimMontage> AttackMontage;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
-	TObjectPtr<UAnimMontage> DamagedMontage;
+	UPROPERTY(ReplicatedUsing = OnRep_AnimationSet, EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	TObjectPtr<UNGPawnAnimationSet> AnimationSet;
 	
 	virtual void NotifyActorBeginCursorOver() override;
 	virtual void NotifyActorEndCursorOver() override;
@@ -253,7 +267,13 @@ protected:
 
 	UFUNCTION()
 	void OnRep_CurrentGridAddress();
-	void LookAt(ANGPawnBase* Target);
+	
+	UFUNCTION()
+	void OnRep_AnimationSet();
+	
+	void ApplyAnimationSet() const;
+
+	void LookAt(const ANGPawnBase* Target);
 
 	//클라이언트 reject용
 	UPROPERTY(EditDefaultsOnly, Category = "GridIndex", meta = (AllowPrivateAccess = "true"))

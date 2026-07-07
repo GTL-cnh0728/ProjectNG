@@ -20,7 +20,7 @@ public:
 	ANGEnemyPawn();
 
 	virtual void Activate() override;
-	void InitializeEnemyStats(const FEnemyAbilityData& DataRow);
+	void InitializeEnemyStats(const FUnitAbilityData& DataRow);
 
 	virtual void OnRep_PlayerState() override;
 	
@@ -42,8 +42,4 @@ public:
 private:
 	virtual void InitAbilityActorInfo() override;
 	
-private:
-	float CurrentDistance;
-	
-	bool bCanMoving;
 };

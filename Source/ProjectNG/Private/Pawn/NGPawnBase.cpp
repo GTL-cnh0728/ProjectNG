@@ -4,24 +4,29 @@
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystem/NGAbilitySystemComponent.h"
+#include "AbilitySystem/NGGameplayAbility.h"
 #include "AbilitySystem/NGPawnAttributeSet.h"
 #include "AbilitySystem/NGPlayerAttributeSet.h"
 #include "Combat/Grid/Arena.h"
+#include "Combat/Item/NGEquipmentItemDataAsset.h"
+#include "Combat/Item/NGEquipmentItemInstance.h"
 #include "Components/CapsuleComponent.h"
-#include "Components/NGHPBarWidgetComponent.h"
+#include "Components/NGFloatingBarWidgetComponent.h"
 #include "Components/NGPathFindingComponent.h"
 #include "Components/NGPocketComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Game/NGPawnDataManager.h"
 #include "Core/NGDeveloperSettings.h"
+#include "Core/NGPawnAnimationSet.h"
+#include "Engine/ActorChannel.h"
 #include "GameModes/NGInGameMode.h"
 #include "Net/UnrealNetwork.h"
 #include "Pawn/NGUnitPawn.h"
 #include "Player/NGPlayerController.h"
 #include "ProjectNG/ProjectNG.h"
-#include "UI/NGWidgetInterface.h"
+#include "UI/NGFloatingWidgetInterface.h"
 
-ANGPawnBase::ANGPawnBase() : SpeedScale(100.f), RotationInterpSpeed(10.f)
+ANGPawnBase::ANGPawnBase() : EquipMaxCount(3), SpeedScale(100.f), RotationInterpSpeed(10.f)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	
@@ -58,12 +63,12 @@ ANGPawnBase::ANGPawnBase() : SpeedScale(100.f), RotationInterpSpeed(10.f)
 	
 	PathFindingComponent = CreateDefaultSubobject<UNGPathFindingComponent>(TEXT("PathFindingComp"));
 	
-	HPBarComponent = CreateDefaultSubobject<UNGHPBarWidgetComponent>(TEXT("HPBarComponent"));
-	HPBarComponent->SetupAttachment(CapsuleComponent);
+	FloatingBarComponent = CreateDefaultSubobject<UNGFloatingBarWidgetComponent>(TEXT("FloatingBarComponent"));
+	FloatingBarComponent->SetupAttachment(CapsuleComponent);
 	FVector UIRelativeLocation = FVector(0.f, 0.f, GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
-	HPBarComponent->SetRelativeLocation(UIRelativeLocation);
-	HPBarComponent->SetWidgetSpace(EWidgetSpace::Screen);
-	HPBarComponent->SetDrawSize(FVector2D(100.f, 20.f));
+	FloatingBarComponent->SetRelativeLocation(UIRelativeLocation);
+	FloatingBarComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	FloatingBarComponent->SetDrawSize(FVector2D(100.f, 30.f));
 }
 
 UAbilitySystemComponent* ANGPawnBase::GetAbilitySystemComponent() const
@@ -131,22 +136,29 @@ void ANGPawnBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& Ou
 	DOREPLIFETIME(ANGPawnBase, NextGridPoint);
 	DOREPLIFETIME(ANGPawnBase, PawnState);
 	DOREPLIFETIME(ANGPawnBase, IdentificationTag);
+	DOREPLIFETIME(ANGPawnBase, AnimationSet);
+	DOREPLIFETIME(ANGPawnBase, EquipmentItems);
+}
+
+bool ANGPawnBase::ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+
+	for (UNGEquipmentItemInstance* Item : EquipmentItems)
+	{
+		if (Item)
+		{
+			WroteSomething |= Channel->ReplicateSubobject(Item, *Bunch, *RepFlags);
+		}
+	}
+
+	return WroteSomething;
 }
 
 void ANGPawnBase::HandleGameplayCue(UObject* Self, FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType,
                                     const FGameplayCueParameters& Parameters)
 {
 	IGameplayCueInterface::HandleGameplayCue(Self, GameplayCueTag, EventType, Parameters);
-	
-	const static FGameplayTag HitTag = FGameplayTag::RequestGameplayTag(FName("GameplayCue.Character.Hit"));
-	
-	if (GameplayCueTag.MatchesTag(HitTag))
-	{
-		if (EventType == EGameplayCueEvent::Executed)
-		{
-			PlayAnimMontage(DamagedMontage);
-		}
-	}
 }
 
 void ANGPawnBase::OnRep_PlayerState()
@@ -165,6 +177,25 @@ void ANGPawnBase::PossessedBy(AController* NewController)
 
 void ANGPawnBase::Activate()
 {
+	ensureMsgf(IdentificationTag.IsValid(), TEXT("UnitIdTag is not valid for %s"), *GetName());
+	
+	if (HasAuthority())
+	{
+		Multicast_Activate();
+
+		if (UNGPawnDataManager* UnitDataManager = GetWorld()->GetGameInstance()->GetSubsystem<UNGPawnDataManager>())
+		{
+			if (const FUnitAbilityData* UnitData = UnitDataManager->GetUnitAbilityData(IdentificationTag))
+			{
+				InitAbilityData(*UnitData);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("[%s] 데이터 테이블에서 태그(%s)를 찾을 수 없습니다!"), *GetName(), *IdentificationTag.ToString());
+			}
+		}
+	}
+	
 	if (!HasAuthority())
 	{
 		SetActorHiddenInGame(false);
@@ -204,25 +235,14 @@ void ANGPawnBase::Multicast_Deactivate_Implementation()
 void ANGPawnBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	ensureMsgf(IdentificationTag.IsValid(), TEXT("UnitIdTag is not valid for %s"), *GetName());
-	
+		
 	if (AbilitySystemComponent)
 	{
 		InitializeAttributes();
-		
-		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
-			AttributeSet->GetHealthAttribute()).AddUObject(this, &ANGPawnBase::OnHealthChanged);
-		
-		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
-			AttributeSet->GetAttackRangeAttribute()).AddUObject(this, &ANGPawnBase::OnAttackRangeChanged);
-
-		AttackAbilitySpecHandle = AbilitySystemComponent->GiveAbility(
-			FGameplayAbilitySpec(AttackAbilityClass, 1, INDEX_NONE, this)
-		);
 	}
-		
+
 	UpdateHPBar();
+	UpdateMPBar();
 }
 
 void ANGPawnBase::Tick(float DeltaTime)
@@ -326,6 +346,8 @@ void ANGPawnBase::OnReachedNextGrid()
 	NextGridAddress.GridIndex = NextGridPoint;
 	TranslatePawnOnGrid(NextGridAddress);
 	
+	GridMap->GridInfo[GridMap->ConvertPointToIndex(NextGridPoint)].bAnyoneIsComing = false;
+	
 	//적에게 도착시 전투상태로 이전
 	if (!CurrentTarget || CurrentTarget->IsDead())
 	{
@@ -349,7 +371,7 @@ void ANGPawnBase::OnReachedNextGrid()
 	}
 	
 	FIntVector2 NextGrid = TargetPath[CurrentPathIndex];
-	if (GridMap->GridInfo[GridMap->ConvertPointToIndex(NextGrid)].PlacedPawn != nullptr)
+	if (GridMap->CanGoGrid(NextGrid))
 	{
 		ReFindPath();
 		return;
@@ -404,15 +426,26 @@ void ANGPawnBase::TransitionToState(EPawnState NewState)
 	OnEnterNewState(NewState);
 }
 
-void ANGPawnBase::OnApplyHardCrowdControl()
+void ANGPawnBase::SetAttackCheckTimer(bool bRun) const
 {
-	GetWorld()->GetTimerManager().PauseTimer(AttackCheckTimerHandle);
+	if (bRun)
+	{
+		GetWorld()->GetTimerManager().UnPauseTimer(AttackCheckTimerHandle);
+	}else
+	{
+		GetWorld()->GetTimerManager().PauseTimer(AttackCheckTimerHandle);
+	}
+}
+
+void ANGPawnBase::OnApplyHardCrowdControl() const
+{
+	SetAttackCheckTimer(false);
 	GetWorld()->GetTimerManager().PauseTimer(PredictGridReachingTimerHandle);
 }
 
-void ANGPawnBase::OnRemoveHardCrowdControl()
+void ANGPawnBase::OnRemoveHardCrowdControl() const
 {
-	GetWorld()->GetTimerManager().UnPauseTimer(AttackCheckTimerHandle);
+	SetAttackCheckTimer(true);
 	GetWorld()->GetTimerManager().UnPauseTimer(PredictGridReachingTimerHandle);
 }
 
@@ -489,6 +522,11 @@ void ANGPawnBase::SetNextGridPoint(FIntVector2 NewNextGridPoint)
 	NextGridAddress.GridIndex = NextGridPoint;
 	FVector NextGridLoc = UGridMapHelper::GetWorldLocation(NextGridAddress);
 
+	if (FGridMapBase* GridMap = UGridMapHelper::GetGridMap(NextGridAddress))
+	{
+		GridMap->GridInfo[GridMap->ConvertPointToIndex(NextGridAddress.GridIndex)].bAnyoneIsComing = true;
+	}
+	
 	float ActualDistance = FVector::Distance(CurrentLoc, NextGridLoc);
     
 	float MoveSpeed = GetMoveSpeed();
@@ -549,21 +587,27 @@ void ANGPawnBase::OnHealthChanged(const FOnAttributeChangeData& Data)
 	UpdateHPBar();
 }
 
+void ANGPawnBase::OnManaChanged(const FOnAttributeChangeData& Data)
+{
+	UpdateMPBar();
+}
+
 void ANGPawnBase::OnAttackRangeChanged(const FOnAttributeChangeData& Data)
 {
 }
 
 void ANGPawnBase::InitializeAttributes()
 {
-	if (!DefaultAttributeTable)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("No AttributeTable"));
-		return;
-	}
-	
 	if (AbilitySystemComponent)
 	{
-		// AbilitySystemComponent->InitStats(UNGAttributeSet::StaticClass(), DefaultAttributeTable);
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
+			AttributeSet->GetHealthAttribute()).AddUObject(this, &ANGPawnBase::OnHealthChanged);
+
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
+			AttributeSet->GetManaAttribute()).AddUObject(this, &ANGPawnBase::OnManaChanged);
+		
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
+			AttributeSet->GetAttackRangeAttribute()).AddUObject(this, &ANGPawnBase::OnAttackRangeChanged);
 	}
 }
 
@@ -571,13 +615,6 @@ void ANGPawnBase::Initialize(ANGPlayerState* PS)
 {
 	OwnerIndex = PS->GetUserIndex();
 }
-
-UAnimMontage* ANGPawnBase::GetAttackMontage() const
-{
-	return AttackMontage;
-}
-
-
 
 void ANGPawnBase::Die()
 {
@@ -595,10 +632,18 @@ void ANGPawnBase::Die()
 	
 	UnSetPawnOnGrid(CurrentGridAddress);
 	
+	//움직이던 도중에 죽으면 가려고 했던 예정지 예약취소
+	if (TargetPath.Num() != 0)
+	{
+		if (FGridMapBase* GridMap = UGridMapHelper::GetGridMap(CurrentGridAddress))
+		{
+			GridMap->GridInfo[GridMap->ConvertPointToIndex(NextGridPoint)].bAnyoneIsComing = false;
+		}
+	}
+	
 	// AddLooseGameplayTag는 메모리 상에서만 일시적 태그를 붙일 때 유용
 	GetAbilitySystemComponent()->AddLooseGameplayTag(DeadTag);
 	
-	// Todo: 삭제가 되는 것이 아니라, 비활성화해서 pool로 복귀
 	Deactivate();
 	
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -643,20 +688,41 @@ void ANGPawnBase::RestoreStates()
 	TransitionToState(EPawnState::None);
 }
 
-void ANGPawnBase::UpdateHPBar()
+void ANGPawnBase::UpdateHPBar() const
 {
-	if (UUserWidget* HPWidget = HPBarComponent->GetUserWidgetObject())
+	if (UUserWidget* FloatingWidget = FloatingBarComponent->GetUserWidgetObject())
 	{
 		float CurrentHP = AbilitySystemComponent->GetNumericAttribute(UNGPawnAttributeSet::GetHealthAttribute());
 		float MaxHP = AbilitySystemComponent->GetNumericAttribute(UNGPawnAttributeSet::GetMaxHealthAttribute());
 		
 		float Percent = (MaxHP > 0.f) ? CurrentHP / MaxHP : 0.f;
 		
-		INGWidgetInterface::Execute_UpdateHP(HPWidget, Percent);
-		
+		if (FloatingWidget->GetClass()->ImplementsInterface(UNGFloatingWidgetInterface::StaticClass()))
+		{
+			INGFloatingWidgetInterface::Execute_UpdateHP(FloatingWidget, Percent);
+		}		
 	}else
 	{
 		UE_LOG(LogTemp, Error, TEXT("Can't update HPBar"));
+	}
+}
+
+void ANGPawnBase::UpdateMPBar() const
+{
+	if (UUserWidget* FloatingWidget = FloatingBarComponent->GetUserWidgetObject())
+	{
+		float CurrentMP = AbilitySystemComponent->GetNumericAttribute(UNGPawnAttributeSet::GetManaAttribute());
+		float MaxMP = AbilitySystemComponent->GetNumericAttribute(UNGPawnAttributeSet::GetMaxManaAttribute());
+		
+		float Percent = (MaxMP > 0.f) ? CurrentMP / MaxMP : 0.f;
+		
+		if (FloatingWidget->GetClass()->ImplementsInterface(UNGFloatingWidgetInterface::StaticClass()))
+		{
+			INGFloatingWidgetInterface::Execute_UpdateMP(FloatingWidget, Percent);
+		}
+	}else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Can't update MPBar"));
 	}
 }
 
@@ -670,14 +736,14 @@ bool ANGPawnBase::CanAddUnitOnCombatGrid(EGridType NewGridType) const
 			TArray<ANGPawnBase*> PlacedUnitPocket;
 			CurrentGridAddress.GridOwnerPS->GetPlayerPocket()->GetPlacedUnits(PlacedUnitPocket);
 
-			if (PlacedUnitPocket.Num() < MyPlayerAttributeSet->GetLevel())
+			if (PlacedUnitPocket.Num() >= MyPlayerAttributeSet->GetLevel())
 			{
-				return true;
+				return false;
 			}
 		}
 	}
 	
-	return false;
+	return true;
 }
 
 void ANGPawnBase::TryMoveTo(const FVector& TargetLocation)
@@ -736,7 +802,7 @@ void ANGPawnBase::Client_RejectMove_Implementation()
 void ANGPawnBase::NotifyActorBeginCursorOver()
 {
 	Super::NotifyActorBeginCursorOver();
-
+	
 	GrantHoverState();
 }
 
@@ -862,7 +928,57 @@ void ANGPawnBase::OnRep_CurrentGridAddress()
 	UpdatePawnCurrentLocation(CurrentGridAddress);
 }
 
-void ANGPawnBase::LookAt(ANGPawnBase* Target)
+void ANGPawnBase::OnRep_AnimationSet()
+{
+	ApplyAnimationSet();
+}
+
+void ANGPawnBase::InitializeUnitData(const FUnitData* Data)
+{
+	if (!HasAuthority())	return;
+	
+	if (!Data)	return;
+	
+	SetIdentificationTag(Data->IdentificationTag);
+	
+	if (Data->AnimationSet)
+	{
+		AnimationSet = Data->AnimationSet;
+		
+		ApplyAnimationSet();
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("Success InitializeUnitData!"));
+}
+
+void ANGPawnBase::ApplyAnimationSet() const
+{
+	if (!AnimationSet)	return;
+	
+	if (USkeletalMeshComponent* Mesh = GetMesh())
+	{
+		Mesh->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+		
+		if (!AnimationSet->SkeletalMesh.IsNull())
+		{
+			// 상점 로딩 같은 대량 작업 시에는 Async 비동기 로드가 정석
+			USkeletalMesh* LoadedMesh = AnimationSet->SkeletalMesh.LoadSynchronous();
+			if (LoadedMesh && Mesh)
+			{
+				Mesh->SetSkeletalMesh(LoadedMesh);
+			}
+		}
+
+		if (AnimationSet->AnimBlueprintClass && Mesh)
+		{
+			Mesh->SetAnimInstanceClass(AnimationSet->AnimBlueprintClass);
+		}
+		
+		Mesh->InitAnim(true);
+	}
+}
+
+void ANGPawnBase::LookAt(const ANGPawnBase* Target)
 {
 	if (!Target) return;
 
@@ -898,7 +1014,7 @@ void ANGPawnBase::ExecuteAttack()
 	}
 }
 
-void ANGPawnBase::VisualizePath()
+void ANGPawnBase::VisualizePath() const
 {
 	if (PathFindingComponent)
 	{
@@ -923,7 +1039,7 @@ void ANGPawnBase::VisualizePath()
 	}
 }
 
-void ANGPawnBase::HighlightRangeIndicator(FGridAddress PivotAddress) const
+void ANGPawnBase::HighlightRangeIndicator(const FGridAddress& PivotAddress) const
 {
 	//대기석은 ㄴㄴ
 	if (PivotAddress.GridType != EGridType::Combat)
@@ -938,26 +1054,95 @@ void ANGPawnBase::HighlightRangeIndicator(FGridAddress PivotAddress) const
 	}
 }
 
+void ANGPawnBase::BindJobSkillTrigger()
+{
+	if (!AbilitySystemComponent)	return;
+	
+	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UNGPawnAttributeSet::GetManaAttribute())
+	.AddLambda([this](const FOnAttributeChangeData& Data)
+	{
+		float CurrentMana = Data.NewValue;
+		float MaxMana = AbilitySystemComponent->GetNumericAttribute(UNGPawnAttributeSet::GetMaxManaAttribute());
+
+		if (CurrentMana >= MaxMana && MaxMana > 0.f)
+		{
+		   if (CurrentTarget)
+		   {
+			  LookAt(CurrentTarget.Get());
+
+			  FGameplayEventData Payload;
+			  Payload.Instigator = this;
+			  Payload.Target = CurrentTarget.Get();
+			  Payload.TargetData = UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActor(CurrentTarget.Get());
+
+			  GetAbilitySystemComponent()->HandleGameplayEvent(
+				 FGameplayTag::RequestGameplayTag(FName("Event.JobSkill")), 
+				 &Payload
+			  );
+		   }
+		}
+	});
+}
+
+bool ANGPawnBase::EquipItem(UNGEquipmentItemInstance* Item)
+{
+	if (EquipmentItems.Num() >= EquipMaxCount)	return false;
+	
+	FGameplayEffectContextHandle Context = AbilitySystemComponent->MakeEffectContext();
+	FGameplayEffectSpecHandle Spec = AbilitySystemComponent->MakeOutgoingSpec(Item->GetEquipDataAsset()->EquipGameplayEffect,1,Context);
+
+	if (!Spec.IsValid())	return false;
+	
+	EquipmentItems.Add(Item);
+
+	Item->AppliedHandle = AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*Spec.Data);
+	
+	return true;
+}
+
+TArray<TObjectPtr<UNGEquipmentItemInstance>> ANGPawnBase::UnEquipItem()
+{
+	for (UNGEquipmentItemInstance* Item : EquipmentItems)
+	{
+		AbilitySystemComponent->RemoveActiveGameplayEffect(Item->AppliedHandle);
+	}
+	
+	return MoveTemp(EquipmentItems);
+}
+
 void ANGPawnBase::InitAbilityData(const FUnitAbilityData& AbilityData)
 {
+	if (!HasAuthority())	return;
 	if (!AbilitySystemComponent || !AttributeSet) return;
 	
-	if (HasAuthority())
+	if (ActiveLooseTags.Num() > 0)
 	{
-		if (ActiveLooseTags.Num() > 0)
-		{
-			AbilitySystemComponent->RemoveLooseGameplayTags(ActiveLooseTags);
-		}
-		
-		// Setup Tag
-		IdentificationTag = AbilityData.IdentificationTag;
-		AbilitySystemComponent->AddLooseGameplayTags(AbilityData.OwnedTags);
-		ActiveLooseTags = AbilityData.OwnedTags;
-		
-		// Initialize Stat
-		for (const auto& Stat : AbilityData.DefaultStats)
-		{
-			AbilitySystemComponent->SetNumericAttributeBase(Stat.Key, Stat.Value);
-		}
+		AbilitySystemComponent->RemoveLooseGameplayTags(ActiveLooseTags);
+	}
+	
+	// Setup Tag
+	IdentificationTag = AbilityData.IdentificationTag;
+	AbilitySystemComponent->AddLooseGameplayTags(AbilityData.OwnedTags);
+	ActiveLooseTags = AbilityData.OwnedTags;
+	
+	if (AbilityData.JobSkill)
+	{
+		FGameplayAbilitySpec AbilitySpec(AbilityData.JobSkill, 1);
+		JobSkillAbilityHandle = AbilitySystemComponent->GiveAbility(AbilitySpec);
+		BindJobSkillTrigger();
+	}
+	
+	if (AbilityData.DefaultAttackSkill)
+	{
+		FGameplayAbilitySpec AbilitySpec(AbilityData.DefaultAttackSkill, 1);
+		AttackAbilitySpecHandle = AbilitySystemComponent->GiveAbility(
+			FGameplayAbilitySpec(AbilityData.DefaultAttackSkill, 1, INDEX_NONE, this)
+		);
+	}
+	
+	// Initialize Stat
+	for (const auto& Stat : AbilityData.DefaultStats)
+	{
+		AbilitySystemComponent->SetNumericAttributeBase(Stat.Key, Stat.Value);
 	}
 }

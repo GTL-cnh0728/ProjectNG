@@ -21,7 +21,6 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	
 	const FUnitAbilityData* GetUnitAbilityData(const FGameplayTag IdentificationTag);
-	const FEnemyAbilityData* GetEnemyAbilityData(const FGameplayTag IdentificationTag);
 	
 	const FUnitData* GetUnitData(const FGameplayTag IdentificationTag);
 	
@@ -36,26 +35,20 @@ public:
 
 	bool IsExistUnitDataTable() const { return UnitDataTable != nullptr; }
 	
-	const UDataTable* GetUnitDataTable() { return UnitDataTable; };
+	const UDataTable* GetUnitDataTable() { return UnitDataTable; }
 	
-	const UDataTable* GetUnitAbilityDataTable() { return UnitAbilityDataTable; };
-	const UDataTable* GetEnemyAbilityDataTable() { return EnemyAbilityDataTable; };
+	const UDataTable* GetUnitAbilityDataTable() { return UnitAbilityDataTable; }
 	
 	const TMap<FGameplayTag, FUnitData*>& GetAllUnitDataMap() const { return TagToUnitDataMap; }
 	
 private:
 	UPROPERTY()
 	TObjectPtr<UDataTable> UnitAbilityDataTable;
-
-	UPROPERTY()
-	TObjectPtr<UDataTable> EnemyAbilityDataTable;
 	
 	UPROPERTY()
 	TObjectPtr<UDataTable> UnitDataTable;
 	
 	TMap<FGameplayTag, FUnitAbilityData*> TagToUnitAbilityDataMap;
-
-	TMap<FGameplayTag, FEnemyAbilityData*> TagToEnemyAbilityDataMap;
 	
 	TMap<FGameplayTag, FUnitData*> TagToUnitDataMap;
 	

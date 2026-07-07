@@ -3,8 +3,7 @@
 
 #include "Core/NGPoolSubSystem.h"
 
-#include "Combat/Weapon/NGProjectile.h"
-#include "Core/NGDeveloperSettings.h"
+#include "Combat/NGProjectile.h"
 
 ANGProjectile* UNGPoolSubSystem::AcquireProjectile(TSubclassOf<ANGProjectile> ProjectileClass,
                                                    const FTransform& SpawnTransform, ANGPawnBase* Target)
@@ -64,17 +63,6 @@ ANGPawnBase* UNGPoolSubSystem::AcquirePawn(TSubclassOf<ANGPawnBase> PawnClass,
 	else
 	{
 		UClass* TargetClass = PawnClass;
-		
-		TMap<TSubclassOf<ANGPawnBase>, TSoftClassPtr<ANGPawnBase>> ClassMap = GetDefault<UNGDeveloperSettings>()->PawnClass;
-		if (ClassMap.Contains(PawnClass))
-		{
-			//TODO: LoadSynchronous는 병목의 원인이 되기도 함. 비동기로드를 미리 해두고 나중에는 메모리에 있는지 체크하는 방식이 나음
-			if (UClass* LoadClass = ClassMap[PawnClass].LoadSynchronous())
-			{
-				TargetClass = LoadClass;
-				UE_LOG(LogTemp, Log, TEXT("Spawn Developer Setting Pawn Class"));
-			}
-		}
 		
 		Pawn = GetWorld()->SpawnActor<ANGPawnBase>(TargetClass, SpawnTransform, SpawnParams);
 		UE_LOG(LogTemp, Log, TEXT("Spawn Default Pawn Class"));

@@ -3,35 +3,30 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameplayTagContainer.h"
-#include "UObject/Object.h"
-#include "NGGameplayTags.generated.h"
+#include "NativeGameplayTags.h"
 
-/**
- * 
- */
-
-USTRUCT(BlueprintType)
-struct FNGGameplayTags
+namespace NGGameplayTags
 {
-	GENERATED_BODY()
-public:
-	static const FNGGameplayTags& Get() {return GameplayTags;}
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Node_Town_Elf);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Node_Town_Dwarf);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Node_Event_Default);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Node_Event_Combat);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Node_Event_Hidden);
 	
-	static void InitializeNativeTags();
-	
-	FGameplayTag Event_Attack_Hit;
-	
-	FGameplayTag Node_Town_Elf;
-	
-	FGameplayTag Node_Town_Dwarf;
-	
-	FGameplayTag Node_Event_Combat;
-	
-	FGameplayTag Node_Event_Default;
-	
-	FGameplayTag Node_Event_Hidden;
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event);
 
-private:
-	static FNGGameplayTags GameplayTags;
-};
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Attack);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Attack_Melee);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Attack_Release);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_JobSkill_John);
+	
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Data_BaseDamage);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Data_ADMultiplier);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Data_APMultiplier);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Data_SkillMultiplier);
+		
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Item_Equipment_TestSword);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Item_Relic_TestRelic);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Item_Useable_TestPotion);
+
+}

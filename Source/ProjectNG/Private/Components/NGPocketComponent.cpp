@@ -5,6 +5,7 @@
 
 #include "AbilitySystem/NGPawnAttributeSet.h"
 #include "AbilitySystem/NGPlayerAttributeSet.h"
+#include "Components/NGBuffManagerComponent.h"
 #include "Core/NGPoolSubSystem.h"
 #include "Core/NGShopProbability.h"
 #include "Core/NGSpawnHelper.h"
@@ -252,6 +253,12 @@ void UNGPocketComponent::ControlPocketSpawning(ANGPawnBase* NewPawn)
 {
 	RemoveUnitFromShop(NewPawn->GetIdentificationTag());
 	AddUnitFromPocket(NewPawn);
+	
+	ANGPlayerState* PS = GetOwner<ANGPlayerState>();
+	if (UNGBuffManagerComponent* BuffManager = PS->GetBuffManager())
+	{
+		BuffManager->ApplyAllBuffsToPawn(NewPawn);
+	}
 }
 
 void UNGPocketComponent::ControlPocketSelling(ANGPawnBase* NewPawn)
@@ -303,6 +310,24 @@ void UNGPocketComponent::AddUnitFromPocket(ANGPawnBase* NewPawn)
 void UNGPocketComponent::RemoveUnitFromPocket(ANGPawnBase* Unit)
 {
 	OwnedUnitPocket.Remove(Unit);
+}
+
+void UNGPocketComponent::CollectTotalUnitHPAndMaxHP(float& OutMaxHP, float& OutHP)
+{
+	float TotalHP = 0;
+	float TotalMaxHP = 0;
+	TArray<ANGPawnBase*> PlacedUnitPocket;
+	GetPlacedUnits(PlacedUnitPocket);
+	for (ANGPawnBase* Unit : PlacedUnitPocket)
+	{
+		UNGAbilitySystemComponent* ASC = Unit->GetNGAbilitySystemComponent();
+		const UNGPawnAttributeSet* PawnAttributeSet = ASC ? ASC->GetSet<UNGPawnAttributeSet>() : nullptr;
+		TotalHP += PawnAttributeSet ? PawnAttributeSet->GetHealth() : 0.f;
+		TotalMaxHP += PawnAttributeSet ? PawnAttributeSet->GetMaxHealth() : 0.f;
+	}
+	
+	OutMaxHP = TotalMaxHP;
+	OutHP = TotalHP;
 }
 
 void UNGPocketComponent::Server_RequestRoll_Implementation()
@@ -374,6 +399,12 @@ void UNGPocketComponent::Server_RequestRoll_Implementation()
 		}
 	}
 
+	//디버깅용도
+	if (bDebugJohnAppeared)
+	{
+		RollShopPocket[0] = FGameplayTag::RequestGameplayTag(TEXT("Unit.Tier1.John"));
+	}
+	
 	LastShopAction = EShopActionType::Roll;
 	
 	// 서버에서는 롤포켓할필요 없지않나

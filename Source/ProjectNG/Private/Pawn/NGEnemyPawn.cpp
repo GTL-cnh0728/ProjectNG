@@ -6,14 +6,13 @@
 #include "AbilitySystem/NGAbilitySystemComponent.h"
 #include "AbilitySystem/NGPawnAttributeSet.h"
 #include "Components/CapsuleComponent.h"
-#include "Core/EnemyAbilityData.h"
 #include "Game/NGPawnDataManager.h"
 #include "Player/NGPlayerController.h"
 #include "ProjectNG/ProjectNG.h"
 
 
 // Sets default values
-ANGEnemyPawn::ANGEnemyPawn() : CurrentDistance(0.f), bCanMoving(false)
+ANGEnemyPawn::ANGEnemyPawn()
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -32,7 +31,7 @@ void ANGEnemyPawn::Activate()
 	
 		if (UNGPawnDataManager* PawnDataManager = GetWorld()->GetGameInstance()->GetSubsystem<UNGPawnDataManager>())
 		{
-			if (const FEnemyAbilityData* EnemyData = PawnDataManager->GetEnemyAbilityData(IdentificationTag))
+			if (const FUnitAbilityData* EnemyData = PawnDataManager->GetUnitAbilityData(IdentificationTag))
 			{
 				InitializeEnemyStats(*EnemyData);
 			}
@@ -44,7 +43,7 @@ void ANGEnemyPawn::Activate()
 	}
 }
 
-void ANGEnemyPawn::InitializeEnemyStats(const FEnemyAbilityData& DataRow)
+void ANGEnemyPawn::InitializeEnemyStats(const FUnitAbilityData& DataRow)
 {
 	if (!AbilitySystemComponent || !AttributeSet) return;
 

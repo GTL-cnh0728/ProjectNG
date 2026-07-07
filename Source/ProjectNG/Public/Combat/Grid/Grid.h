@@ -65,9 +65,13 @@ struct FGridData
 	UPROPERTY()
 	TObjectPtr<ANGPawnBase> PlacedPawn;
 	
+	UPROPERTY()
+	bool bAnyoneIsComing;
+	
 	void Reset()
 	{
 		PlacedPawn = nullptr;
+		bAnyoneIsComing = false;
 	}
 };
 
@@ -90,6 +94,7 @@ struct PROJECTNG_API FGridMapBase
     
 	bool IsGridIndexEmpty(const FIntVector2& GridIndex) const;
 	TOptional<FIntVector2> GetEmptyGridIndex() const;
+	bool CanGoGrid(const FIntVector2& GridIndex) const;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Width;

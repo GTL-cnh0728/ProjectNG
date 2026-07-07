@@ -16,7 +16,5 @@ void UNGAssetManager::StartInitialLoading()
 {
 	Super::StartInitialLoading();
 	
-	FNGGameplayTags::InitializeNativeTags();
-	
 	UAbilitySystemGlobals::Get().InitGlobalData();
 }

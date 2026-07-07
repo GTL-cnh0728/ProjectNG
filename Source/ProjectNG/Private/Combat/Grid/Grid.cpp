@@ -87,6 +87,14 @@ TOptional<FIntVector2> FGridMapBase::GetEmptyGridIndex() const
     return TOptional<FIntVector2>();
 }
 
+bool FGridMapBase::CanGoGrid(const FIntVector2& GridIndex) const
+{
+    if (!IsGridIndexEmpty(GridIndex))   return false;
+    if (GridInfo[ConvertPointToIndex(GridIndex)].bAnyoneIsComing) return false;
+
+    return true;
+}
+
 FQuadGridMap::FQuadGridMap() { Internal_Initialize(9, 1, 100.f, FVector::ZeroVector, EGridType::Wait); Offset = 50.f; }
 
 void FQuadGridMap::InitializeMap(const int32 InSizeX, const int32 InSizeY, const float InCellSize, const FVector& InPivot)
@@ -349,12 +357,12 @@ void UGridMapHelper::DrawDebugGrid(const UObject* WorldContextObject, FGridAddre
             
             FVector WorldLoc = GetWorldLocation(GridAddress); // 기존 함수 활용
             
-            // 1. 유닛 점유 확인 (PlacedPawn)
+            // 유닛 점유 확인 (PlacedPawn)
             // 가시화: 점유 중이면 빨간 구체, 비어있으면 초록 구체
             FColor DisplayColor = Data.PlacedPawn ? FColor::Red : FColor::Green;
             DrawDebugSphere(World, WorldLoc, 50.f, 12, DisplayColor, false, 0.f, 0, 2.f);
             
-            // 2. EmptyGridIndex 포함 여부 확인 (점유 가능 타일)
+            // EmptyGridIndex 포함 여부 확인 (점유 가능 타일)
             // 알고리즘 최적화를 위해 실서비스에선 TSet을 권장하지만, 디버그용이니 Contains도 무방합니다.
             bool bIsEmpty = GridMap->IsGridIndexEmpty(Idx);
             // EmptyGridIndex에 있다면 테두리 표시

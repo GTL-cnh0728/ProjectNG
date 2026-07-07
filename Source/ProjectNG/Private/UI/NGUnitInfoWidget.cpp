@@ -30,15 +30,15 @@ void UNGUnitInfoWidget::SetUnitDataOnUI(ANGPawnBase* NewUnit)
 	
 	float CurrentHP = ASC->GetNumericAttribute(UNGPawnAttributeSet::GetHealthAttribute());
 	float MaxHP = ASC->GetNumericAttribute(UNGPawnAttributeSet::GetMaxHealthAttribute());
-	float Strength = ASC->GetNumericAttribute(UNGPawnAttributeSet::GetStrengthAttribute());
+	float AttackDamage = ASC->GetNumericAttribute(UNGPawnAttributeSet::GetAttackDamageAttribute());
 	
-	OnUpdateUnitInfo(CurrentHP, MaxHP, Strength);
+	OnUpdateUnitInfo(CurrentHP, MaxHP, AttackDamage);
 	
 	//체력이 바뀌었을때 호출되도록 구독해두기
 	HealthChangedDelegateHandle = ASC->GetGameplayAttributeValueChangeDelegate(UNGPawnAttributeSet::GetHealthAttribute())
 		.AddUObject(this, &UNGUnitInfoWidget::OnHealthChanged);
 	
-	StrengthChangedDelegateHandle = ASC->GetGameplayAttributeValueChangeDelegate(UNGPawnAttributeSet::GetStrengthAttribute())
+	StrengthChangedDelegateHandle = ASC->GetGameplayAttributeValueChangeDelegate(UNGPawnAttributeSet::GetAttackDamageAttribute())
 		.AddUObject(this, &UNGUnitInfoWidget::OnStrengthChanged);
 	
 }
@@ -48,7 +48,7 @@ void UNGUnitInfoWidget::ClearUnitDataOnUI()
 	if (TargetASC.IsValid())
 	{
 		TargetASC->GetGameplayAttributeValueChangeDelegate(UNGPawnAttributeSet::GetHealthAttribute()).Remove(HealthChangedDelegateHandle);
-		TargetASC->GetGameplayAttributeValueChangeDelegate(UNGPawnAttributeSet::GetStrengthAttribute()).Remove(StrengthChangedDelegateHandle);
+		TargetASC->GetGameplayAttributeValueChangeDelegate(UNGPawnAttributeSet::GetAttackDamageAttribute()).Remove(StrengthChangedDelegateHandle);
 	}
 	
 	TargetASC.Reset();
@@ -59,7 +59,7 @@ void UNGUnitInfoWidget::OnHealthChanged(const FOnAttributeChangeData& Data)
 	if (TargetASC.IsValid())
 	{
 		float MaxHP = TargetASC->GetNumericAttribute(UNGPawnAttributeSet::GetMaxHealthAttribute());
-		float Str = TargetASC->GetNumericAttribute(UNGPawnAttributeSet::GetStrengthAttribute());
+		float Str = TargetASC->GetNumericAttribute(UNGPawnAttributeSet::GetAttackDamageAttribute());
 		OnUpdateUnitInfo(Data.NewValue, MaxHP, Str);
 	}
 }

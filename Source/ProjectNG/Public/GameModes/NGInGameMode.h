@@ -13,7 +13,16 @@
  * 
  */
 
+class UNGMapGeneratorComponent;
 class ANGPawnBase;
+
+namespace EGameTime
+{
+	constexpr float NodeSelectionTime = 30.0f;
+	constexpr float PreparationTime = 30.0f;
+	constexpr float ActionPhaseTime = 60.0f;
+	constexpr float ResultTime = 3.0f;
+}
 
 UCLASS()
 class PROJECTNG_API ANGInGameMode : public ANGGameModeBase
@@ -31,14 +40,22 @@ public:
 	
 	// Game Flow
 	void StartTurn();
+	void StartTownSelection();
+	void StartPreparationPhase();
+	void OnPreparationTimerExpired();
 	void StartNodeSelection();
+	void OnTownSelectionTimerTick();
 	void OnNodeSelectionTimerTick();
+	void RollMovementDice(AController* Controller);
 	void ProcessNodeSelection(AController* Controller, int32 NodeID);
+	void CompleteNodeAction(AController* Controller);
 	void CheckAllPlayersReadyForNodeSelection();
 	
 	void StartActionPhase();
 	void OnActionPhaseTimerTick();
 	void CheckAllPlayersFinishedAction();
+	void StartResultPhase();
+	void OnResultPhaseTimerExpired();
 	
 	void EndTurn();
 	
@@ -65,16 +82,26 @@ public:
 
 	// 특정 티어의 유닛을 랜덤으로 반환합니다.
 	FGameplayTag GetRandomUnitByTier(EUnitTier Tier);
-
-
-	bool CanBuyUnit(FGameplayTag UnitTag, float OwnedGold) const;
+	
+	bool CanBuyUnit(FGameplayTag UnitTag, const ANGPlayerState* PlayerState) const;
 
 	TSubclassOf<ANGUnitPawn> GetUnitClass(FGameplayTag UnitTag) const;
 	const FUnitData* GetUnitData(FGameplayTag UnitTag) const;
 
-	UNGCombatManagerComponent* GetCombatManagerComponent() { return CombatManagerComponent; };	
+	UNGCombatManagerComponent* GetCombatManagerComponent() { return CombatManagerComponent; };
+	UNGMapGeneratorComponent* GetMapGeneratorComponent() { return MapGeneratorComponent; };
 protected:
 	void InitializeUnitPool();
+	void BeginCurrentPlayerMovement();
+	void AdvanceMovementPlayer();
+	void CompleteCurrentPlayerMovementAutomatically();
+	void RollDiceForPlayer(ANGPlayerState* PlayerState);
+	TArray<int32> FindReachableNodeIDs(int32 StartNodeID, int32 MaxDistance) const;
+	void StartNodeAction(ANGPlayerState* PlayerState, const FMapNodeData& NodeData);
+	void StartCPUCombatForNode(ANGPlayerState* PlayerState, ENodeType NodeType);
+	void ApplyRestNode(ANGPlayerState* PlayerState);
+	void NotifyNodeActionStarted(ANGPlayerState* PlayerState, const FMapNodeData& NodeData);
+	void NotifyPvPCombatStarted(ANGPlayerState* PlayerA, ANGPlayerState* PlayerB, int32 NodeID);
 
 	// Key: GameplayTag, Value: remain count
 	TMap<FGameplayTag, int32> UnitPool;
@@ -84,6 +111,11 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Managers")
 	TObjectPtr<UNGCombatManagerComponent> CombatManagerComponent;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Managers")
+	TObjectPtr<UNGMapGeneratorComponent> MapGeneratorComponent;
 
 	FTimerHandle PhaseTimerHandle;
+	int32 ActiveMovementPlayerIndex = INDEX_NONE;
+	TSet<TWeakObjectPtr<ANGPlayerState>> PlayersInNodeCombat;
 };

@@ -75,6 +75,8 @@ public:
 
 	void SetGameState(EGameState NewState);
 	void EarnGold(float EarnedGold) const;
+	
+	UFUNCTION(BlueprintCallable)
 	EGameState GetGameState() const { return CurrentGameState; }
 
 	int32 GetCurrentNodeID() const { return CurrentNodeID; }
@@ -88,7 +90,14 @@ public:
 
 	bool IsActionFinished() const { return bIsActionFinished; }
 	void SetActionFinished(bool bFinished) { bIsActionFinished = bFinished; }
+
+	bool ShouldSkipNextMovementTurn() const { return bSkipNextMovementTurn; }
+	void SetSkipNextMovementTurn(bool bSkip) { bSkipNextMovementTurn = bSkip; }
+	bool DidSkipMovementThisTurn() const { return bSkippedMovementThisTurn; }
+	void SetSkippedMovementThisTurn(bool bSkipped) { bSkippedMovementThisTurn = bSkipped; }
+
 	void OnCombatEnd(FCombatResultData CombatResult);
+	bool ConsumePendingCombatResult(FCombatResultData& OutCombatResult);
 	
 	float GetOwnedGold() const;
 	
@@ -116,6 +125,15 @@ protected:
 
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "Game|Turn")
 	bool bIsActionFinished = false;
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Game|Turn")
+	bool bSkipNextMovementTurn = false;
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Game|Turn")
+	bool bSkippedMovementThisTurn = false;
+
+	FCombatResultData PendingCombatResult;
+	bool bHasPendingCombatResult = false;
 
 /*************************************/
 /*		전투 및 Pocket 관련			 */

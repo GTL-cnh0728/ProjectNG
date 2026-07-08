@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "InputActionValue.h"
 #include "NGPlayerState.h"
+#include "Core/NGEnemyDataAsset.h"
+#include "Map/NGMapTypes.h"
 #include "Core/NGEnum.h"
 #include "GameFramework/PlayerController.h"
 #include "NGPlayerController.generated.h"
@@ -24,6 +26,9 @@ class UNGPocketComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnUnitsUpdatedSignature);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBuyUnitSuccessSignature, bool, bIsSuccess);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnNodeActionStartedSignature, ENodeType, NodeType, int32, NodeID);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPvPCombatStartedSignature, ANGPlayerState*, OpponentPlayer, int32, NodeID);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCombatResultSignature, FCombatResultData, CombatResult);
 
 UCLASS()
 class PROJECTNG_API ANGPlayerController : public APlayerController
@@ -119,6 +124,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Selection")
 	TObjectPtr<UNGItemInstance> CurrentDraggingItem;
 	
+	// UPROPERTY()
+	// TObjectPtr<ANGHUD> NGHUD;
+	
 /*************************************/
 /*				리롤 관련			 */
 /*************************************/
@@ -129,8 +137,23 @@ public:
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Game|Shop")
 	void Server_RequestBuyUnit(FGameplayTag UnitTag);
 
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Game|Map")
 	void Server_SelectNode(int32 NodeID);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Game|Map")
+	void Server_RollMovementDice();
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Game|Map")
+	void Server_CompleteNodeAction();
+
+	UFUNCTION(Client, Reliable)
+	void Client_BeginNodeAction(ENodeType NodeType, int32 NodeID);
+
+	UFUNCTION(Client, Reliable)
+	void Client_BeginPvPCombat(ANGPlayerState* OpponentPlayer, int32 NodeID);
+
+	UFUNCTION(Client, Reliable)
+	void Client_ShowCombatResult(const FCombatResultData& CombatResult);
 	
 	UFUNCTION(Client, Reliable)
 	void Client_OnBuyUnit(bool bIsSuccess);
@@ -140,15 +163,24 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Game|Shop")
 	FOnBuyUnitSuccessSignature OnBuyUnitSuccess;
+
+	UPROPERTY(BlueprintAssignable, Category = "Game|Map")
+	FOnNodeActionStartedSignature OnNodeActionStarted;
+
+	UPROPERTY(BlueprintAssignable, Category = "Game|Combat")
+	FOnPvPCombatStartedSignature OnPVPCombatStarted;
+
+	UPROPERTY(BlueprintAssignable, Category = "Game|Combat")
+	FOnCombatResultSignature OnCombatResult;
 	
 /*************************************/
 /*				전투					 */
 /*************************************/
 public:
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Game|Combat")
 	void Server_EnterPhase(EGamePhase Phase);
 
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Game|Combat")
 	void Server_RequestFlee();
 	
 /*************************************/

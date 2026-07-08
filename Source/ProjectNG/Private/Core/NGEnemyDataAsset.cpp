@@ -18,3 +18,24 @@ bool UNGEnemyDataAsset::GetRandomSquadForZone(const FGameplayTag& TargetZone, FE
 
 	return false;
 }
+
+bool UNGEnemyDataAsset::GetRandomSquadForZoneAndNodeType(const FGameplayTag& TargetZone, ENodeType NodeType,
+	FEnemySquadData& OutSquadData) const
+{
+	const FZoneSquadPool* ZonePool = ZoneSquadMasterPool.Find(TargetZone);
+	if (!ZonePool) return false;
+
+	TArray<const FEnemySquadData*> Candidates;
+	for (const FEnemySquadData& Squad : ZonePool->SquadCandidates)
+	{
+		if (Squad.EncounterNodeType == NodeType)
+		{
+			Candidates.Add(&Squad);
+		}
+	}
+
+	if (Candidates.IsEmpty()) return false;
+
+	OutSquadData = *Candidates[FMath::RandRange(0, Candidates.Num() - 1)];
+	return true;
+}

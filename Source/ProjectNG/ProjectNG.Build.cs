@@ -25,6 +25,10 @@ public class ProjectNG : ModuleRules
 			
 			// ProjectSetting 모듈
 			"DeveloperSettings",
+			
+			// Slate/SlateCore 모듈
+			"Slate",
+			 "SlateCore",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]

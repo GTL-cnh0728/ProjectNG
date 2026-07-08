@@ -23,7 +23,6 @@
 #include "ProjectNG/ProjectNG.h"
 #include "UI/NGUnitInfoWidget.h"
 #include "UI/HUD/NGHUD.h"
-#include "UI/WidgetController/UnitDetailsWidgetController.h"
 
 ANGPlayerController::ANGPlayerController() : DragThreshold(10.f), DragHeightOffset(20.f), DragInterpSpeed(20.f)
 {
@@ -277,13 +276,14 @@ void ANGPlayerController::SetDragItemWithUpdateUI(UNGItemInstance* InItem)
 
 	if (const ANGHUD* NGHUD = GetHUD<ANGHUD>())
 	{
-		if (bIsDraggingItem)
-		{
-			NGHUD->ShowInventory(false);
-		}else
-		{
-			NGHUD->ShowInventory(true);
-		}
+		// Todo
+		// if (bIsDraggingItem)
+		// {
+		// 	NGHUD->ShowInventory(false);
+		// }else
+		// {
+		// 	NGHUD->ShowInventory(true);
+		// }
 	}
 }
 
@@ -361,15 +361,7 @@ void ANGPlayerController::SetSelectedUnit(ANGPawnBase* InSelectedUnit)
 		{
 			if (ANGUnitPawn* UnitPawn = Cast<ANGUnitPawn>(SelectedUnit.Get()))
 			{
-				if (UUnitDetailsWidgetController* DetailsWidgetController = MyNGHUD->GetUnitDetailsWidgetController())
-				{
-					DetailsWidgetController->SetTargetUnit(UnitPawn);
-				}
-
-				if (UNGUnitInfoWidget* UnitInfoWidget = MyNGHUD->GetUnitInfoWidget())
-				{
-					UnitInfoWidget->UpdateUnitWidget(UnitPawn);
-				}
+				// Todo: 유닛 선택시 표시할 UI
 			}
 		}
 	}
@@ -390,10 +382,7 @@ void ANGPlayerController::ResetSelectUnit()
 			UnitInfoWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		}
 		
-		if (UUnitDetailsWidgetController* UnitDetailsWidgetController = UNGBlueprintLibrary::GetUnitDetailsWidgetController(this))
-		{
-			UnitDetailsWidgetController->ClearTargetUnit();
-		}
+		// Todo: 유닛 선택 UI 비활성화
 		
 		SelectedUnit = nullptr;
 	}
@@ -467,7 +456,7 @@ void ANGPlayerController::Server_RequestBuyUnit_Implementation(FGameplayTag Unit
 	if (ANGPlayerState* PS = GetPlayerState<ANGPlayerState>())
 	{
 		ANGInGameMode* GM = GetWorld()->GetAuthGameMode<ANGInGameMode>();
-		if (GM ? GM->CanBuyUnit(UnitTag, PS->GetOwnedGold()) : false)
+		if (GM ? GM->CanBuyUnit(UnitTag, PS) : false)
 		{
 			if (ANGUnitPawn* NewPawn = UNGSpawnHelper::SpawnUnitPawn(this, UnitTag))
 			{
@@ -490,6 +479,37 @@ void ANGPlayerController::Server_SelectNode_Implementation(int32 NodeID)
 	{
 		GM->ProcessNodeSelection(this, NodeID);
 	}
+}
+
+void ANGPlayerController::Server_RollMovementDice_Implementation()
+{
+	if (ANGInGameMode* GM = GetWorld()->GetAuthGameMode<ANGInGameMode>())
+	{
+		GM->RollMovementDice(this);
+	}
+}
+
+void ANGPlayerController::Server_CompleteNodeAction_Implementation()
+{
+	if (ANGInGameMode* GM = GetWorld()->GetAuthGameMode<ANGInGameMode>())
+	{
+		GM->CompleteNodeAction(this);
+	}
+}
+
+void ANGPlayerController::Client_BeginNodeAction_Implementation(ENodeType NodeType, int32 NodeID)
+{
+	OnNodeActionStarted.Broadcast(NodeType, NodeID);
+}
+
+void ANGPlayerController::Client_BeginPvPCombat_Implementation(ANGPlayerState* OpponentPlayer, int32 NodeID)
+{
+	OnPVPCombatStarted.Broadcast(OpponentPlayer, NodeID);
+}
+
+void ANGPlayerController::Client_ShowCombatResult_Implementation(const FCombatResultData& CombatResult)
+{
+	OnCombatResult.Broadcast(CombatResult);
 }
 
 void ANGPlayerController::Client_OnBuyUnit_Implementation(bool bIsSuccess)

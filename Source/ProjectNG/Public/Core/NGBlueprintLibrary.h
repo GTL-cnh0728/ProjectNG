@@ -7,6 +7,9 @@
 #include "GameplayTagContainer.h"
 #include "NGBlueprintLibrary.generated.h"
 
+class UNGMainWidgetController;
+class UNGMapWidgetController;
+class UNGRollShopWidgetController;
 struct FWidgetParams;
 class UUnitDetailsWidgetController;
 class ANGHUD;
@@ -49,11 +52,20 @@ public:
 	static bool MakeWidgetControllerParams(const UObject* WorldContextObject, FWidgetParams& OutWidgetParams, ANGHUD*& OutHUD);
 	
 	UFUNCTION(BlueprintPure, Category = "NG|Utility", meta = (DefaultToSelf = "WorldContextObject"))
-	static UUnitDetailsWidgetController* GetUnitDetailsWidgetController(const UObject* WorldContextObject);
+	static UNGRollShopWidgetController* GetRollShopWidgetController(const UObject* WorldContextObject);
+	
+	UFUNCTION(BlueprintPure, Category = "NG|Utility", meta = (DefaultToSelf = "WorldContextObject"))
+	static UNGMapWidgetController* GetMapWidgetController(const UObject* WorldContextObject);
 
+	UFUNCTION(BlueprintPure, Category = "NG|Utility", meta = (DefaultToSelf = "WorldContextObject"))
+	static UNGMainWidgetController* GetMainWidgetController(const UObject* WorldContextObject);
+	
 	UFUNCTION(BlueprintCallable, Category = "NG|Data", meta = (WorldContext = "WorldContextObject", ExpandEnumAsExecs = "OutResult"))
 	static void GetUnitDataRowByTag(const UObject* WorldContextObject, FGameplayTag UnitTag, EGetDataTableRowResult& OutResult, FUnitData& OutRow);
 
 	UFUNCTION(BlueprintCallable, Category = "NG|Data", meta = (ExpandEnumAsExecs = "OutResult"))
 	static void GetUnitDataRowFromTableByTag(UDataTable* DataTable, FGameplayTag UnitTag, EGetDataTableRowResult& OutResult, FUnitData& OutRow);
+	
+	UFUNCTION(BlueprintPure, Category = "NG|Time")
+	static FText FormatSecondsAsMMSS(float TimeInSeconds);
 };

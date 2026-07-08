@@ -37,14 +37,42 @@ bool UNGBlueprintLibrary::MakeWidgetControllerParams(const UObject* WorldContext
 	return false;
 }
 
-UUnitDetailsWidgetController* UNGBlueprintLibrary::GetUnitDetailsWidgetController(const UObject* WorldContextObject)
+UNGRollShopWidgetController* UNGBlueprintLibrary::GetRollShopWidgetController(const UObject* WorldContextObject)
 {
 	FWidgetParams WParams;
 	ANGHUD* NGHUD = nullptr;
+	
 	if (MakeWidgetControllerParams(WorldContextObject, WParams, NGHUD))
 	{
-		// return NGHUD->GetUnitDetailsWidgetController(WParams);
+		return NGHUD->CreateRollShopWidgetController(WParams);
 	}
+	
+	return nullptr;
+}
+
+UNGMapWidgetController* UNGBlueprintLibrary::GetMapWidgetController(const UObject* WorldContextObject)
+{
+	FWidgetParams WParams;
+	ANGHUD* NGHUD = nullptr;
+	
+	if (MakeWidgetControllerParams(WorldContextObject, WParams, NGHUD))
+	{
+		return NGHUD->CreateMapWidgetController(WParams);
+	}
+	
+	return nullptr;
+}
+
+UNGMainWidgetController* UNGBlueprintLibrary::GetMainWidgetController(const UObject* WorldContextObject)
+{
+	FWidgetParams WParams;
+	ANGHUD* NGHUD = nullptr;
+	
+	if (MakeWidgetControllerParams(WorldContextObject, WParams, NGHUD))
+	{
+		return NGHUD->CreateMainWidgetController(WParams);
+	}
+	
 	return nullptr;
 }
 
@@ -86,4 +114,13 @@ void UNGBlueprintLibrary::GetUnitDataRowFromTableByTag(UDataTable* DataTable, FG
 	}
 
 	OutResult = EGetDataTableRowResult::RowNotFound;
+}
+
+FText UNGBlueprintLibrary::FormatSecondsAsMMSS(float TimeInSeconds)
+{
+	int32 TotalSeconds = FMath::FloorToInt(TimeInSeconds);
+	int32 Minutes = TotalSeconds / 60;
+	int32 Seconds = TotalSeconds % 60;
+	
+	return FText::FromString(FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds));
 }

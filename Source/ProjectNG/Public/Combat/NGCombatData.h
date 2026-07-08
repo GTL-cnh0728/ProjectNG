@@ -45,7 +45,7 @@ struct FCombatSettingData
 	FEnemySquadData EnemySquadData;
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FCombatResultData
 {
 	GENERATED_BODY()
@@ -56,10 +56,10 @@ struct FCombatResultData
 		EarnedReward = FReward(0);
 	}
 	
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	ECombatResult WinResult;
 	
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	FReward EarnedReward;
 	//얻은 전리품같은거
 };

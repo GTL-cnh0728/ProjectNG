@@ -1,17 +1,17 @@
 // Copyright (c) 2025 TeamNG. All Rights Reserved.
 
-
 #include "Map/MapNodeDataAsset.h"
 
-TSubclassOf<ANGMapNode> UMapNodeDataAsset::GetMapNodeData(const FGameplayTag& Tag)
+bool UMapNodeDataAsset::GetMapNodeVisual(const FGameplayTag& Tag, FMapNodeVisualData& OutData) const
 {
-	for (FMapNodeParam& Data : MapNodeData)
+	for (const FMapNodeVisualData& Data : MapNodeVisuals)
 	{
 		if (Data.NodeTag == Tag)
 		{
-			return Data.MapNode;
+			OutData = Data;
+			return true;
 		}
 	}
 	
-	return nullptr;
+	return false;
 }

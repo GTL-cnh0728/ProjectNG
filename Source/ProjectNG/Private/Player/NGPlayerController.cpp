@@ -273,18 +273,8 @@ void ANGPlayerController::SetDragItemWithUpdateUI(UNGItemInstance* InItem)
 	SetDragItem(InItem);
 	
 	bool bIsDraggingItem = InItem ? true : false;
-
-	if (const ANGHUD* NGHUD = GetHUD<ANGHUD>())
-	{
-		// Todo
-		// if (bIsDraggingItem)
-		// {
-		// 	NGHUD->ShowInventory(false);
-		// }else
-		// {
-		// 	NGHUD->ShowInventory(true);
-		// }
-	}
+	
+	OnShowInventory.Broadcast(bIsDraggingItem);
 }
 
 void ANGPlayerController::SetDragItem(UNGItemInstance* InItem)
@@ -356,14 +346,6 @@ void ANGPlayerController::SetSelectedUnit(ANGPawnBase* InSelectedUnit)
 		{
 			ISelectableInterface::Execute_OnSelected(SelectedUnit.Get());
 		}
-		
-		if (ANGHUD* MyNGHUD = GetHUD<ANGHUD>())
-		{
-			if (ANGUnitPawn* UnitPawn = Cast<ANGUnitPawn>(SelectedUnit.Get()))
-			{
-				// Todo: 유닛 선택시 표시할 UI
-			}
-		}
 	}
 }
 
@@ -381,8 +363,6 @@ void ANGPlayerController::ResetSelectUnit()
 			UnitInfoWidgetInstance->ClearUnitDataOnUI();
 			UnitInfoWidgetInstance->SetVisibility(ESlateVisibility::Collapsed);
 		}
-		
-		// Todo: 유닛 선택 UI 비활성화
 		
 		SelectedUnit = nullptr;
 	}

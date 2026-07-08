@@ -2,11 +2,8 @@
 
 #include "UI/HUD/NGHUD.h"
 #include "Blueprint/UserWidget.h"
-#include "Components/NGInventoryComponent.h"
-#include "UI/NGInventoryWidget.h"
-#include "UI/NGShopControlWidget.h"
-#include "UI/NGUnitInfoWidget.h"
 #include "UI/NGUserWidget.h"
+#include "UI/WidgetController/NGInventoryWidgetController.h"
 #include "UI/WidgetController/NGMainWidgetController.h"
 #include "UI/WidgetController/NGRollShopWidgetController.h"
 #include "UI/WidgetController/NGMapWidgetController.h"
@@ -47,22 +44,18 @@ UNGMapWidgetController* ANGHUD::CreateMapWidgetController(const FWidgetParams& W
     return MapWidgetController;
 }
 
-// Todo
-// void ANGHUD::ShowInventory(bool bVisible) const
-// {
-//     if (!MainWidget || !MainWidget->InventoryWidget)   return;
-//     
-//     ESlateVisibility Visibility = bVisible ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed;
-//
-//     MainWidget->InventoryWidget->SetVisibility(Visibility);
-// }
-//
-// void ANGHUD::RefreshInventory()
-// {
-//     if (!MainWidget || !MainWidget->InventoryWidget)   return;
-//     
-//     MainWidget->InventoryWidget->RefreshInventory();
-// }
+UNGInventoryWidgetController* ANGHUD::CreateInventoryWidgetController(const FWidgetParams& WidgetControllerParams)
+{
+    if (InventoryWidgetController == nullptr)
+    {
+        InventoryWidgetController = NewObject<UNGInventoryWidgetController>(this, InventoryWidgetControllerClass);
+        InventoryWidgetController->AssignWidgetControllerParams(WidgetControllerParams);
+        InventoryWidgetController->BindCallbacksToDependencies();
+    }
+    
+    return InventoryWidgetController;
+}
+
 
 void ANGHUD::InitializeHUD(APlayerController* PC, APlayerState* PS)
 {
@@ -82,12 +75,4 @@ void ANGHUD::InitializeHUD(APlayerController* PC, APlayerState* PS)
     {
         Widget->AddToViewport();
     }
-    
-    ANGPlayerState* NGPS = CastChecked<ANGPlayerState>(PS);
-    
-    // Todo
-    // if (UNGInventoryComponent* Inven = NGPS ? NGPS->GetPlayerInventory() : nullptr)
-    // {
-    //     Inven->OnInventoryChanged.AddDynamic(this, &ANGHUD::RefreshInventory);
-    // }
 }

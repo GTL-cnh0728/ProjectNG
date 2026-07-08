@@ -8,6 +8,7 @@
 #include "UI/NGWidgetController.h"
 #include "UI/HUD/NGHUD.h"
 #include "Game/NGPawnDataManager.h"
+#include "UI/WidgetController/NGInventoryWidgetController.h"
 
 ANGHUD* UNGBlueprintLibrary::GetNGHUD(const UObject* WorldContextObject)
 {
@@ -45,6 +46,19 @@ UNGRollShopWidgetController* UNGBlueprintLibrary::GetRollShopWidgetController(co
 	if (MakeWidgetControllerParams(WorldContextObject, WParams, NGHUD))
 	{
 		return NGHUD->CreateRollShopWidgetController(WParams);
+	}
+	
+	return nullptr;
+}
+
+UNGInventoryWidgetController* UNGBlueprintLibrary::GetInventoryWidgetController(const UObject* WorldContextObject)
+{
+	FWidgetParams WParams;
+	ANGHUD* NGHUD = nullptr;
+	
+	if (MakeWidgetControllerParams(WorldContextObject, WParams, NGHUD))
+	{
+		return NGHUD->CreateInventoryWidgetController(WParams);
 	}
 	
 	return nullptr;

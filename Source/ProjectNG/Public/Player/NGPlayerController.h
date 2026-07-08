@@ -25,6 +25,7 @@ class UNGPocketComponent;
  */
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnUnitsUpdatedSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnShowInventory, bool, bVisible);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBuyUnitSuccessSignature, bool, bIsSuccess);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnNodeActionStartedSignature, ENodeType, NodeType, int32, NodeID);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnPvPCombatStartedSignature, ANGPlayerState*, OpponentPlayer, int32, NodeID);
@@ -161,6 +162,9 @@ public:
 	UNGPocketComponent* GetPlayerPocket() const;
 	void EnterPhase(EGamePhase Phase);
 
+	UPROPERTY(BlueprintAssignable, Category = "Game|Inventory")
+	FOnShowInventory OnShowInventory;
+	
 	UPROPERTY(BlueprintAssignable, Category = "Game|Shop")
 	FOnBuyUnitSuccessSignature OnBuyUnitSuccess;
 

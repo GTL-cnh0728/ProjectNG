@@ -5,11 +5,13 @@
 #include "CoreMinimal.h"
 #include "Core/NGUnitData.h"
 #include "GameplayTagContainer.h"
+#include "UI/WidgetController/NGInventoryWidgetController.h"
 #include "NGBlueprintLibrary.generated.h"
 
 class UNGMainWidgetController;
 class UNGMapWidgetController;
 class UNGRollShopWidgetController;
+class UNGInventoryWidgetController;
 struct FWidgetParams;
 class UUnitDetailsWidgetController;
 class ANGHUD;
@@ -54,6 +56,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "NG|Utility", meta = (DefaultToSelf = "WorldContextObject"))
 	static UNGRollShopWidgetController* GetRollShopWidgetController(const UObject* WorldContextObject);
 	
+	UFUNCTION(BlueprintPure, Category = "NG|Utility", meta = (DefaultToSelf = "WorldContextObject"))
+	static UNGInventoryWidgetController* GetInventoryWidgetController(const UObject* WorldContextObject);
+
 	UFUNCTION(BlueprintPure, Category = "NG|Utility", meta = (DefaultToSelf = "WorldContextObject"))
 	static UNGMapWidgetController* GetMapWidgetController(const UObject* WorldContextObject);
 

@@ -7,6 +7,7 @@
 #include "UI/NGWidgetController.h"
 #include "NGHUD.generated.h"
 
+class UNGInventoryWidgetController;
 class UNGMainWidgetController;
 class UNGShopControlWidget;
 class UNGUnitInfoWidget;
@@ -27,18 +28,14 @@ public:
     UNGMainWidgetController* CreateMainWidgetController(const FWidgetParams& WidgetControllerParams);
     UNGRollShopWidgetController* CreateRollShopWidgetController(const FWidgetParams& WidgetControllerParams);
     UNGMapWidgetController* CreateMapWidgetController(const FWidgetParams& WidgetControllerParams);
+    UNGInventoryWidgetController* CreateInventoryWidgetController(const FWidgetParams& WidgetControllerParams);
 
     UNGMainWidgetController* GetMainWidgetController() { return MainWidgetController;}
     UNGRollShopWidgetController* GetRollShopWidgetController() { return RollShopWidgetController; }
     UNGMapWidgetController* GetMapWidgetController() { return MapWidgetController; }
+    UNGInventoryWidgetController* GetInventoryWidgetController() { return InventoryWidgetController; }
     UNGUnitInfoWidget* GetUnitInfoWidget() { return UnitInfoWidget; }
     
-    // Todo
-    // void ShowInventory(bool bVisible) const;
-    //
-    // UFUNCTION()
-    // void RefreshInventory();
-
     void InitializeHUD(APlayerController* PC, APlayerState* PS);
 
 protected:
@@ -84,5 +81,13 @@ private:
 
     UPROPERTY(EditAnywhere, Category = "UI")
     TSubclassOf<UNGMapWidgetController> MapWidgetControllerClass;
+    //~ End Map WidgetController
+    
+    //~ Begin Map WidgetController
+    UPROPERTY()
+    TObjectPtr<UNGInventoryWidgetController> InventoryWidgetController;
+
+    UPROPERTY(EditAnywhere, Category = "UI")
+    TSubclassOf<UNGInventoryWidgetController> InventoryWidgetControllerClass;
     //~ End Map WidgetController
 };

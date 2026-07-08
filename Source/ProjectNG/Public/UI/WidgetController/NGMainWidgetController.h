@@ -27,8 +27,7 @@ public:
 public:
 	UPROPERTY(BlueprintAssignable, Category = "Game|Turn")
 	FOnGameFlowChangedDelegate OnGameFlowChanged;
-	
-	
+
 private:
 	
 	UFUNCTION()

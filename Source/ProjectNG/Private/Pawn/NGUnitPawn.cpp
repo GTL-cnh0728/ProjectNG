@@ -42,8 +42,6 @@ void ANGUnitPawn::OnDeselected_Implementation()
 	ISelectableInterface::OnDeselected_Implementation();
 	// UE_LOG(LogTemp, Log, TEXT("OnDeselected"));
 	
-	// ShowRangeIndicator(false, TODO);
-	
 	bIsSelected = false;
 }
 

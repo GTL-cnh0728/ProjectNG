@@ -10,6 +10,8 @@
 #include "GameFramework/PlayerState.h"
 #include "NGPlayerState.generated.h"
 
+class UNGBuffManagerComponent;
+class UNGInventoryComponent;
 class UNGPlayerAttributeSet;
 class AArenaManager;
 class AArena;
@@ -138,8 +140,10 @@ protected:
 /*************************************/
 	
 public:
-	UNGPocketComponent* GetPlayerPocket() { return PlayerPocket; }
-	
+	FORCEINLINE UNGPocketComponent* GetPlayerPocket() const { return PlayerPocket; }
+	FORCEINLINE UNGInventoryComponent* GetPlayerInventory() const { return PlayerInventory; }
+	FORCEINLINE UNGBuffManagerComponent* GetBuffManager() const { return PlayerBuffManager; }
+
 	int32 GetUserIndex();
 	
 	void AddCPUEnemyCount();
@@ -155,8 +159,14 @@ public:
 	void InitCPUCombat(const FEnemySquadData& SquadData);
 	
 protected:
-	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Game|Pocket")
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Game")
 	TObjectPtr<UNGPocketComponent> PlayerPocket;
+	
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Game")
+	TObjectPtr<UNGInventoryComponent> PlayerInventory;
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Game")
+	TObjectPtr<UNGBuffManagerComponent> PlayerBuffManager;
 	
 	UPROPERTY()
 	int32 CurrentCPUEnemyCount;

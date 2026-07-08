@@ -13,6 +13,7 @@
 #include "Player/NGPlayerState.h"
 #include "NGPawnBase.generated.h"
 
+class UNGEquipmentItemInstance;
 class UNGPawnAnimationSet;
 class UNGFloatingBarWidgetComponent;
 class UNGPathFindingComponent;
@@ -54,7 +55,7 @@ public:
 	//~End IPoolable
 	
 	virtual void InitializeUnitData(const FUnitData* Data);
-
+	
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_Activate();
 
@@ -83,18 +84,30 @@ public:
 	
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
-	void HighlightRangeIndicator(FGridAddress PivotAddress) const;
+	virtual bool ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
+	
+	void HighlightRangeIndicator(const FGridAddress& PivotAddress) const;
 	
 	void BindJobSkillTrigger();
 
 	int32 GetOwnerIndex() const { return OwnerIndex; }
+
+	bool EquipItem(UNGEquipmentItemInstance* Item);
+	TArray<TObjectPtr<UNGEquipmentItemInstance>> UnEquipItem();
+	
+	UPROPERTY(EditAnywhere)
+	int32 EquipMaxCount;
 	
 protected:
 	/** 파생 클래스에서 GAS 초기화를 위한 로직을 작성 */
 	virtual void InitAbilityActorInfo()	PURE_VIRTUAL(ANGPawnBase::InitAbilityActorInfo);
 
 	void LookAtInterp(ANGPawnBase* Target, float DeltaTime);
+
 protected:
+	UPROPERTY(Replicated, VisibleAnywhere)
+	TArray<TObjectPtr<UNGEquipmentItemInstance>> EquipmentItems;
+	
 	//캐싱 용도
 	UPROPERTY(BlueprintReadOnly, Category = "GAS|AbilitySystemComponent")
 	TObjectPtr<UNGAbilitySystemComponent> AbilitySystemComponent;
@@ -107,7 +120,7 @@ protected:
 
 	virtual void OnAttackRangeChanged(const FOnAttributeChangeData& Data);
 
-	void VisualizePath();
+	void VisualizePath() const;
 
 	void CheckCombatState();
 	void ConsiderTransitionState();
@@ -260,7 +273,7 @@ protected:
 	
 	void ApplyAnimationSet() const;
 
-	void LookAt(ANGPawnBase* Target);
+	void LookAt(const ANGPawnBase* Target);
 
 	//클라이언트 reject용
 	UPROPERTY(EditDefaultsOnly, Category = "GridIndex", meta = (AllowPrivateAccess = "true"))

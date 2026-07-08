@@ -5,7 +5,7 @@
 
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Pawn/NGPawnBase.h"
-#include "Combat/Weapon/NGProjectile.h"
+#include "Combat/NGProjectile.h"
 #include "Core/NGDeveloperSettings.h"
 #include "Core/NGPoolSubSystem.h"
 

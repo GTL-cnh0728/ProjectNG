@@ -8,6 +8,8 @@
 #include "AbilitySystem/NGPawnAttributeSet.h"
 #include "AbilitySystem/NGPlayerAttributeSet.h"
 #include "Combat/Grid/Arena.h"
+#include "Combat/Item/NGEquipmentItemDataAsset.h"
+#include "Combat/Item/NGEquipmentItemInstance.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/NGFloatingBarWidgetComponent.h"
 #include "Components/NGPathFindingComponent.h"
@@ -16,6 +18,7 @@
 #include "Game/NGPawnDataManager.h"
 #include "Core/NGDeveloperSettings.h"
 #include "Core/NGPawnAnimationSet.h"
+#include "Engine/ActorChannel.h"
 #include "GameModes/NGInGameMode.h"
 #include "Net/UnrealNetwork.h"
 #include "Pawn/NGUnitPawn.h"
@@ -23,7 +26,7 @@
 #include "ProjectNG/ProjectNG.h"
 #include "UI/NGFloatingWidgetInterface.h"
 
-ANGPawnBase::ANGPawnBase() : SpeedScale(100.f), RotationInterpSpeed(10.f)
+ANGPawnBase::ANGPawnBase() : EquipMaxCount(3), SpeedScale(100.f), RotationInterpSpeed(10.f)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	
@@ -134,6 +137,22 @@ void ANGPawnBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& Ou
 	DOREPLIFETIME(ANGPawnBase, PawnState);
 	DOREPLIFETIME(ANGPawnBase, IdentificationTag);
 	DOREPLIFETIME(ANGPawnBase, AnimationSet);
+	DOREPLIFETIME(ANGPawnBase, EquipmentItems);
+}
+
+bool ANGPawnBase::ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch, FReplicationFlags* RepFlags)
+{
+	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+
+	for (UNGEquipmentItemInstance* Item : EquipmentItems)
+	{
+		if (Item)
+		{
+			WroteSomething |= Channel->ReplicateSubobject(Item, *Bunch, *RepFlags);
+		}
+	}
+
+	return WroteSomething;
 }
 
 void ANGPawnBase::HandleGameplayCue(UObject* Self, FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType,
@@ -783,7 +802,7 @@ void ANGPawnBase::Client_RejectMove_Implementation()
 void ANGPawnBase::NotifyActorBeginCursorOver()
 {
 	Super::NotifyActorBeginCursorOver();
-
+	
 	GrantHoverState();
 }
 
@@ -959,7 +978,7 @@ void ANGPawnBase::ApplyAnimationSet() const
 	}
 }
 
-void ANGPawnBase::LookAt(ANGPawnBase* Target)
+void ANGPawnBase::LookAt(const ANGPawnBase* Target)
 {
 	if (!Target) return;
 
@@ -995,7 +1014,7 @@ void ANGPawnBase::ExecuteAttack()
 	}
 }
 
-void ANGPawnBase::VisualizePath()
+void ANGPawnBase::VisualizePath() const
 {
 	if (PathFindingComponent)
 	{
@@ -1020,7 +1039,7 @@ void ANGPawnBase::VisualizePath()
 	}
 }
 
-void ANGPawnBase::HighlightRangeIndicator(FGridAddress PivotAddress) const
+void ANGPawnBase::HighlightRangeIndicator(const FGridAddress& PivotAddress) const
 {
 	//대기석은 ㄴㄴ
 	if (PivotAddress.GridType != EGridType::Combat)
@@ -1063,6 +1082,32 @@ void ANGPawnBase::BindJobSkillTrigger()
 		   }
 		}
 	});
+}
+
+bool ANGPawnBase::EquipItem(UNGEquipmentItemInstance* Item)
+{
+	if (EquipmentItems.Num() >= EquipMaxCount)	return false;
+	
+	FGameplayEffectContextHandle Context = AbilitySystemComponent->MakeEffectContext();
+	FGameplayEffectSpecHandle Spec = AbilitySystemComponent->MakeOutgoingSpec(Item->GetEquipDataAsset()->EquipGameplayEffect,1,Context);
+
+	if (!Spec.IsValid())	return false;
+	
+	EquipmentItems.Add(Item);
+
+	Item->AppliedHandle = AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*Spec.Data);
+	
+	return true;
+}
+
+TArray<TObjectPtr<UNGEquipmentItemInstance>> ANGPawnBase::UnEquipItem()
+{
+	for (UNGEquipmentItemInstance* Item : EquipmentItems)
+	{
+		AbilitySystemComponent->RemoveActiveGameplayEffect(Item->AppliedHandle);
+	}
+	
+	return MoveTemp(EquipmentItems);
 }
 
 void ANGPawnBase::InitAbilityData(const FUnitAbilityData& AbilityData)

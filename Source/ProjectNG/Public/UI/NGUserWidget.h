@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "NGUserWidget.generated.h"
 
+class UNGInventoryWidget;
 /**
  * 
  */
@@ -21,7 +22,7 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<UObject> WidgetController;
-
+	
 protected:
 	/* 위젯 컨트롤러가 연결 되었을 때, 위젯에서 자체적으로 데이터 처리를 위한 함수
 	 * 

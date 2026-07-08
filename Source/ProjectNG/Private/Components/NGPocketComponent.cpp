@@ -5,6 +5,7 @@
 
 #include "AbilitySystem/NGPawnAttributeSet.h"
 #include "AbilitySystem/NGPlayerAttributeSet.h"
+#include "Components/NGBuffManagerComponent.h"
 #include "Core/NGPoolSubSystem.h"
 #include "Core/NGShopProbability.h"
 #include "Core/NGSpawnHelper.h"
@@ -252,6 +253,12 @@ void UNGPocketComponent::ControlPocketSpawning(ANGPawnBase* NewPawn)
 {
 	RemoveUnitFromShop(NewPawn->GetIdentificationTag());
 	AddUnitFromPocket(NewPawn);
+	
+	ANGPlayerState* PS = GetOwner<ANGPlayerState>();
+	if (UNGBuffManagerComponent* BuffManager = PS->GetBuffManager())
+	{
+		BuffManager->ApplyAllBuffsToPawn(NewPawn);
+	}
 }
 
 void UNGPocketComponent::ControlPocketSelling(ANGPawnBase* NewPawn)

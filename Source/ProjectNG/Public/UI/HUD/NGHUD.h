@@ -8,6 +8,7 @@
 #include "NGHUD.generated.h"
 
 class UNGMainWidgetController;
+class UNGShopControlWidget;
 class UNGUnitInfoWidget;
 class UUnitDetailsWidgetController;
 class UNGUnitAttributeInfoDataAsset;
@@ -32,6 +33,11 @@ public:
     UNGMapWidgetController* GetMapWidgetController() { return MapWidgetController; }
     UNGUnitInfoWidget* GetUnitInfoWidget() { return UnitInfoWidget; }
     
+    void ShowInventory(bool bVisible) const;
+    
+    UFUNCTION()
+    void RefreshInventory();
+
     void InitializeHUD(APlayerController* PC, APlayerState* PS);
 
 protected:

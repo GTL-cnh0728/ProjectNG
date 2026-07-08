@@ -33,10 +33,11 @@ public:
     UNGMapWidgetController* GetMapWidgetController() { return MapWidgetController; }
     UNGUnitInfoWidget* GetUnitInfoWidget() { return UnitInfoWidget; }
     
-    void ShowInventory(bool bVisible) const;
-    
-    UFUNCTION()
-    void RefreshInventory();
+    // Todo
+    // void ShowInventory(bool bVisible) const;
+    //
+    // UFUNCTION()
+    // void RefreshInventory();
 
     void InitializeHUD(APlayerController* PC, APlayerState* PS);
 

@@ -276,13 +276,14 @@ void ANGPlayerController::SetDragItemWithUpdateUI(UNGItemInstance* InItem)
 
 	if (const ANGHUD* NGHUD = GetHUD<ANGHUD>())
 	{
-		if (bIsDraggingItem)
-		{
-			NGHUD->ShowInventory(false);
-		}else
-		{
-			NGHUD->ShowInventory(true);
-		}
+		// Todo
+		// if (bIsDraggingItem)
+		// {
+		// 	NGHUD->ShowInventory(false);
+		// }else
+		// {
+		// 	NGHUD->ShowInventory(true);
+		// }
 	}
 }
 

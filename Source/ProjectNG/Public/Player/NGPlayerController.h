@@ -124,8 +124,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Selection")
 	TObjectPtr<UNGItemInstance> CurrentDraggingItem;
 	
-	UPROPERTY()
-	TObjectPtr<ANGHUD> NGHUD;
+	// UPROPERTY()
+	// TObjectPtr<ANGHUD> NGHUD;
 	
 /*************************************/
 /*				리롤 관련			 */

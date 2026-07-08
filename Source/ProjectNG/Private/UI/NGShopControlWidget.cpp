@@ -70,7 +70,8 @@ void UNGShopControlWidget::OnInvenButtonClicked()
 	if (!InventoryWidget)	return;
 	if(ANGHUD* NGHUD = GetOwningPlayer()->GetHUD<ANGHUD>())
 	{
-		NGHUD->ShowInventory(true);
+		// Todo
+		// NGHUD->ShowInventory(true);
 	}
 }
 

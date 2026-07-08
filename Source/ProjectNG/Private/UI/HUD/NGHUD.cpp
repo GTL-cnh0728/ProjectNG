@@ -47,29 +47,27 @@ UNGMapWidgetController* ANGHUD::CreateMapWidgetController(const FWidgetParams& W
     return MapWidgetController;
 }
 
-void ANGHUD::ShowInventory(bool bVisible) const
-{
-    if (!MainWidget || !MainWidget->InventoryWidget)   return;
-    
-    ESlateVisibility Visibility = bVisible ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed;
-
-    MainWidget->InventoryWidget->SetVisibility(Visibility);
-}
-
-void ANGHUD::RefreshInventory()
-{
-    if (!MainWidget || !MainWidget->InventoryWidget)   return;
-    
-    MainWidget->InventoryWidget->RefreshInventory();
-}
+// Todo
+// void ANGHUD::ShowInventory(bool bVisible) const
+// {
+//     if (!MainWidget || !MainWidget->InventoryWidget)   return;
+//     
+//     ESlateVisibility Visibility = bVisible ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed;
+//
+//     MainWidget->InventoryWidget->SetVisibility(Visibility);
+// }
+//
+// void ANGHUD::RefreshInventory()
+// {
+//     if (!MainWidget || !MainWidget->InventoryWidget)   return;
+//     
+//     MainWidget->InventoryWidget->RefreshInventory();
+// }
 
 void ANGHUD::InitializeHUD(APlayerController* PC, APlayerState* PS)
 {
     checkf(MainWidgetClass, TEXT("[HUD] MainWidgetClass not initialized"));
     checkf(RollShopWidgetControllerClass, TEXT("[HUD] RollShopWidgetController not initialized"));
-    checkf(UnitInfoWidgetClass, TEXT("[HUD] UnitInfoWidgetClass not initialized"));
-    
-    MainWidget = CreateWidget<UNGShopControlWidget>(PC, MainWidgetClass);
 
     UUserWidget* Widget = CreateWidget<UUserWidget>(GetWorld(), MainWidgetClass);
     MainWidget = Cast<UNGUserWidget>(Widget);
@@ -87,8 +85,9 @@ void ANGHUD::InitializeHUD(APlayerController* PC, APlayerState* PS)
     
     ANGPlayerState* NGPS = CastChecked<ANGPlayerState>(PS);
     
-    if (UNGInventoryComponent* Inven = NGPS ? NGPS->GetPlayerInventory() : nullptr)
-    {
-        Inven->OnInventoryChanged.AddDynamic(this, &ANGHUD::RefreshInventory);
-    }
+    // Todo
+    // if (UNGInventoryComponent* Inven = NGPS ? NGPS->GetPlayerInventory() : nullptr)
+    // {
+    //     Inven->OnInventoryChanged.AddDynamic(this, &ANGHUD::RefreshInventory);
+    // }
 }

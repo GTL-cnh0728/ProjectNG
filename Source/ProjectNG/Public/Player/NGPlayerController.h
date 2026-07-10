@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "InputActionValue.h"
 #include "NGPlayerState.h"
-#include "Core/NGEnemyDataAsset.h"
 #include "Map/NGMapTypes.h"
 #include "Core/NGEnum.h"
 #include "GameFramework/PlayerController.h"
@@ -45,8 +44,8 @@ protected:
 	virtual void SetupInputComponent() override;
 
 	virtual void Tick(float DeltaTime) override;
-	
-/*************************************/
+
+	/*************************************/
 /*				피킹 관련			 */
 /*************************************/
 public:
@@ -198,12 +197,27 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UNGUnitInfoWidget> UnitInfoWidgetInstance;
 
+/*************************************/
+/*				Inventory			 */
+/*************************************/
+
+public:
+	void AddItem(const FGameplayTag& ItemTag) const;
+
+protected:
+	UPROPERTY(EditAnywhere, meta=(AllowPrivateAccess = "true"))
+	int32 ProcessPendingItemMaxPerFrame;
+	
+	UPROPERTY()
+	TArray<FGameplayTag> PendingItemTags;
 	
 /*************************************/
 /*				Debug				 */
 /*************************************/
 
 public:
+
+
 	UFUNCTION(Server,Reliable)
 	void Server_RequestToggleJohnAppeared();
 	
@@ -214,7 +228,7 @@ public:
 	void Server_RequestStopCombat();
 
 	UFUNCTION(Server, Reliable)
-	void Server_RequestGetItem(const FString& ItemName);
+	void Server_RequestGetItem(const FString& ItemName, int32 Count);
 	
 	UFUNCTION(Exec)
 	void Cmd_StartCombat(bool bIsCPUCombat);
@@ -229,7 +243,7 @@ public:
 	void Cmd_ToggleJohn();
 	
 	UFUNCTION(Exec)
-	void Cmd_GetItem(const FString& ItemName);
+	void Cmd_GetItem(const FString& ItemName, int32 Count);
 	
 private:
 	bool bShowDebugGrid;

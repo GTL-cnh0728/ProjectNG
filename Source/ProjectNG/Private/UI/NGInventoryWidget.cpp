@@ -46,16 +46,17 @@ void UNGInventoryWidget::RefreshInventory()
 	
 	UNGInventoryComponent* Inventory = GetInventory();
 	
-	const TArray<TObjectPtr<UNGItemInstance>>& Items = Inventory->GetItems();
+	const FInventoryList& Items = Inventory->GetItems();
 	
-	for(int32 i=0;i<Items.Num();i++)
+	for(int32 i=0;i<Items.Items.Num();i++)
 	{
 		//탭의 태그를 포함안하면 컨티뉴
-		if (!Items[i]->ItemData->ItemTag.MatchesTag(CurrentTab))	continue;
+		UNGItemInstance* Item= Items.Items[i].Item;
+		if (!Item->ItemData->ItemTag.MatchesTag(CurrentTab))	continue;
 		
 		UNGItemSlotWidget* MySlot = CreateWidget<UNGItemSlotWidget>(this, ItemSlotClass);
 
-		MySlot->Init(Items[i]);
+		MySlot->Init(Item);
 
 		ItemList->AddChildToUniformGrid(
 			MySlot,

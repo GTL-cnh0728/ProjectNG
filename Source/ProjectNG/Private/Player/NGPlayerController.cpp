@@ -13,7 +13,6 @@
 #include "Core/NGDeveloperSettings.h"
 #include "Pawn/NGUnitPawn.h"
 #include "Pawn/SelectableInterface.h"
-#include "Core/NGBlueprintLibrary.h"
 #include "Core/NGGameplayTags.h"
 #include "Core/NGSpawnHelper.h"
 #include "GameModes/NGInGameMode.h"
@@ -22,9 +21,8 @@
 
 #include "ProjectNG/ProjectNG.h"
 #include "UI/NGUnitInfoWidget.h"
-#include "UI/HUD/NGHUD.h"
 
-ANGPlayerController::ANGPlayerController() : DragThreshold(10.f), DragHeightOffset(20.f), DragInterpSpeed(20.f)
+ANGPlayerController::ANGPlayerController() : DragThreshold(10.f), DragHeightOffset(20.f), DragInterpSpeed(20.f), ProcessPendingItemMaxPerFrame(100)
 {
 	UE_LOG(LogTemp, Warning, TEXT("---------------PC Created!---------------"));
 	UE_LOG(LogTemp, Warning, TEXT("PC Addr: %p"), this);
@@ -109,6 +107,28 @@ void ANGPlayerController::Tick(float DeltaTime)
 				OnItemDragReleased();
 			}
 		}
+	}
+
+	//한틱에 너무 큰 패킷(65535초과)을 보내면 패킷이 터지기 때문에 일정량 나눠서 보내기
+	
+	if (!PendingItemTags.IsEmpty())
+	{
+		double StartSec = FPlatformTime::Seconds();
+		int ProcessingPendingItem;
+		for (ProcessingPendingItem = 0; ProcessingPendingItem < ProcessPendingItemMaxPerFrame; ProcessingPendingItem++)
+		{
+			if (PendingItemTags.IsEmpty())
+			{
+				ProcessingPendingItem--;
+				break;
+			}
+			
+			AddItem(PendingItemTags.Pop());
+		}
+		
+		double EndSec = FPlatformTime::Seconds();
+		
+		UE_LOG(LogTemp, Warning, TEXT("ProcessingPendingItem: %d Replication Time = %f ms"), ProcessingPendingItem, (EndSec-StartSec)*1000);
 	}
 	
 	if (bShowDebugGrid)
@@ -600,23 +620,32 @@ void ANGPlayerController::Server_RequestToggleJohnAppeared_Implementation()
 	}
 }
 
-void ANGPlayerController::Server_RequestGetItem_Implementation(const FString& ItemName)
+void ANGPlayerController::Server_RequestGetItem_Implementation(const FString& ItemName, int32 Count)
 {
-	ANGPlayerState* PS = GetPlayerState<ANGPlayerState>();
-	UNGInventoryComponent* Inventory = PS ? PS->GetPlayerInventory() : nullptr;
-	
 	TMap<FString, FGameplayTag> CmdTags{
 		{"Sword", NGGameplayTags::Item_Equipment_TestSword},
 		{"Relic", NGGameplayTags::Item_Relic_TestRelic},
 		{"Potion", NGGameplayTags::Item_Useable_TestPotion},
 	};
+
 	
-	UNGItemInstance* NewItem = UNGItemFactory::CreateItem(Inventory, CmdTags[ItemName]);
+	for (int32 i = 0; i < Count; i++)
+	{
+		PendingItemTags.Add(CmdTags[ItemName]);
+	}
+}
+
+void ANGPlayerController::AddItem(const FGameplayTag& ItemTag) const
+{
+	ANGPlayerState* PS = GetPlayerState<ANGPlayerState>();
+	UNGInventoryComponent* Inventory = PS ? PS->GetPlayerInventory() : nullptr;
 	
+	UNGItemInstance* NewItem = UNGItemFactory::CreateItem(Inventory, ItemTag);
 	if (Inventory)
 	{
 		Inventory->AddItem(NewItem);
 	}
+
 }
 
 void ANGPlayerController::Cmd_StartCombat(bool bIsCPUCombat)
@@ -639,7 +668,7 @@ void ANGPlayerController::Cmd_ToggleJohn()
 	Server_RequestToggleJohnAppeared();
 }
 
-void ANGPlayerController::Cmd_GetItem(const FString& ItemName)
+void ANGPlayerController::Cmd_GetItem(const FString& ItemName, int32 Count)
 {
-	Server_RequestGetItem(ItemName);
+	Server_RequestGetItem(ItemName, Count);
 }

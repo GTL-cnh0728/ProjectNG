@@ -5,14 +5,39 @@
 #include "CoreMinimal.h"
 #include "Combat/Item/NGEquipmentItemInstance.h"
 #include "Components/ActorComponent.h"
+#include "Core/Net/FastArrayWrapper.h"
+#include "Net/Serialization/FastArraySerializer.h"
 #include "NGInventoryComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryChangedSignature);
 
 class UNGBuffManagerComponent;
 class UNGRelicItemInstance;
 class ANGPawnBase;
 class UNGItemInstance;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryChangedSignature);
+
+USTRUCT()
+struct FInventoryItem : public FFastArraySerializerItem
+{
+	GENERATED_BODY()
+	
+	UPROPERTY()
+	TObjectPtr<UNGItemInstance> Item;
+};
+
+USTRUCT()
+struct FInventoryList : public FFastArraySerializer
+{
+	GENERATED_BODY()
+	
+	UPROPERTY()
+	TArray<FInventoryItem> Items;
+	
+	DECLARE_FAST_ARRAY_FUNCTIONS(FInventoryList, FInventoryItem, UNGItemInstance);
+};
+
+DECLARE_FAST_ARRAY_TRAITS(UNGItemInstance)
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJECTNG_API UNGInventoryComponent : public UActorComponent
@@ -23,7 +48,7 @@ public:
 	// Sets default values for this component's properties
 	UNGInventoryComponent();
 
-	const TArray<TObjectPtr<UNGItemInstance>>& GetItems() const{ return Items; }
+	const FInventoryList& GetItems() const{ return InventoryItems; }
 	
 	virtual bool ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	
@@ -64,5 +89,5 @@ protected:
 	
 	//ReplicateUsing써서 Inventory Widget Refresh
 	UPROPERTY(ReplicatedUsing=OnRep_Items, VisibleAnywhere)
-	TArray<TObjectPtr<UNGItemInstance>> Items;
+	FInventoryList InventoryItems;
 };

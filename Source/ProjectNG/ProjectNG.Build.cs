@@ -28,7 +28,10 @@ public class ProjectNG : ModuleRules
 			
 			// Slate/SlateCore 모듈
 			"Slate",
-			 "SlateCore",
+			"SlateCore",
+			 
+			// Net 관련 모듈
+			"NetCore", 
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]

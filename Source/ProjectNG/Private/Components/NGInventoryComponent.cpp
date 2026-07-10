@@ -11,7 +11,6 @@
 #include "Net/UnrealNetwork.h"
 #include "Pawn/NGPawnBase.h"
 #include "Player/NGPlayerController.h"
-#include "UI/HUD/NGHUD.h"
 
 
 // Sets default values for this component's properties
@@ -30,8 +29,10 @@ bool UNGInventoryComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunc
 {
 	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
 
-	for (UNGItemInstance* Item : Items)
+	for (FInventoryItem& InventoryItem : InventoryItems.Items)
 	{
+		UNGItemInstance* Item = InventoryItem.Item;
+		
 		if (Item)
 		{
 			WroteSomething |= Channel->ReplicateSubobject(Item, *Bunch, *RepFlags);
@@ -58,8 +59,7 @@ void UNGInventoryComponent::AddItem(UNGRelicItemInstance* NewItem)
 
 void UNGInventoryComponent::Internal_AddItem(UNGItemInstance* NewItem)
 {
-	Items.Add(NewItem);
-	
+	InventoryItems.Add(NewItem);
 	
 	if (GetOwner()->HasAuthority())
 	{
@@ -84,7 +84,8 @@ void UNGInventoryComponent::RemoveItem(UNGRelicItemInstance* Item)
 
 void UNGInventoryComponent::Internal_RemoveItem(UNGItemInstance* Item)
 {
-	Items.Remove(Item);
+	InventoryItems.Remove(Item);
+	
 	RemoveReplicatedSubObject(Item);
 }
 
@@ -107,22 +108,22 @@ bool UNGInventoryComponent::UseItem(UNGItemInstance* Item)
 
 bool UNGInventoryComponent::EquipItem(ANGPawnBase* Unit, UNGEquipmentItemInstance* Item)
 {
-	if (!Items.Contains(Item) || !Unit)	return false;
+	if (!InventoryItems.Contains(Item) || !Unit)	return false;
 
-	if (Unit->EquipItem(Item))
+	if (!Unit->EquipItem(Item))
 	{
-		Items.Remove(Item);
-		return true;
+		return false;
 	}
 	
-	return false;
+	InventoryItems.Remove(Item);
+	return true;
 }
 
 bool UNGInventoryComponent::UnEquipItem(ANGPawnBase* Unit)
 {
 	if(!Unit)	return false;
 
-	Items.Append(Unit->UnEquipItem());
+	InventoryItems.Append<UNGEquipmentItemInstance>(Unit->UnEquipItem());
 	
 	return true;
 }
@@ -166,6 +167,6 @@ void UNGInventoryComponent::GetLifetimeReplicatedProps(TArray<class FLifetimePro
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
-	DOREPLIFETIME(UNGInventoryComponent, Items);
+	DOREPLIFETIME(UNGInventoryComponent, InventoryItems);
 }
 

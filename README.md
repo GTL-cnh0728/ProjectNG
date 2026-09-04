@@ -8,7 +8,7 @@
 
 전투 프레임워크 최적화: 이동 동기화 및 오브젝트 풀링
 
-[이동 동기화 및 클라이언트 예측](https://github.com/GTL-cnh0728/ProjectNG/blob/main/Source/ProjectNG/Private/Pawn/NGPawnBase.cpp)
+[이동 동기화 및 클라이언트 예측](https://github.com/GTL-cnh0728/ProjectNG/blob/main/Source/ProjectNG/Private/Pawn/NGPawnBase.cpp#L859)
 
 다수 유닛 최적화를 위해 가벼운 Pawn을 사용하며, 클라이언트 예측(Client Prediction)을 적용하여 멀티플레이 환경의 끊김 현상 및 서버 판정 불일치 해결
 

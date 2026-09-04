@@ -1,7 +1,7 @@
 [주요 구현 소스코드 및 아키텍처 링크]
 아키텍처 설계: 책임 분리 및 다형성 구조화
 
-[그리드 데이터 관리](https://github.com/GTL-cnh0728/ProjectNG/blob/main/Source/ProjectNG/Public/Player/NGPlayerState.h)
+[그리드 데이터 관리](https://github.com/GTL-cnh0728/ProjectNG/blob/main/Source/ProjectNG/Public/Player/NGPlayerState.h#L195)
 [Grid Helper](https://github.com/GTL-cnh0728/ProjectNG/blob/main/Source/ProjectNG/Private/Combat/Grid/Grid.cpp)
 
 네트워크 복제 비용 절감을 위해 데이터는 경량 USTRUCT로 관리하고, 다형성이 필요한 로직은 식별자 기반 Helper 클래스로 위임하여 Hex/Quad 맵 확장성 확보 및 SRP 적용

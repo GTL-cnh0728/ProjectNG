@@ -1,4 +1,4 @@
-[주요 구현 소스코드 및 아키텍처 링크]
+[주요 구현 소스코드 및 아키텍처 링크]</br>
 아키텍처 설계: 책임 분리 및 다형성 구조화
 
 [그리드 데이터 관리](https://github.com/GTL-cnh0728/ProjectNG/blob/main/Source/ProjectNG/Public/Player/NGPlayerState.h#L195)
